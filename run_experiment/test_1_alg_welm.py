@@ -78,7 +78,7 @@ for exp_numb in numb_exp:
             m1 = welm()
 
             # Grid search
-            [cv_results, avg_cv_results] = m1.grid_search_cv(xx[train_index], yy[train_index], image_id[train_index], param_grid, gridsearch_path, exp_name_seed, cv=cv_numb, cv_run=cv_run, randomseed=exp_numb)
+            [cv_results, avg_cv_results] = m1.grid_search_cv_parallel(xx[train_index], yy[train_index], image_id[train_index], param_grid, gridsearch_path, exp_name_seed, cv=cv_numb, cv_run=cv_run, randomseed=exp_numb)
 
             if cv_run == -1:
                 # Best params
