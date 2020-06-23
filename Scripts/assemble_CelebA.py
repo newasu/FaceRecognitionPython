@@ -4,10 +4,11 @@ import pandas as pd
 # id_range = range(0, 10)
 
 # File paths
+project_path = '/Users/Wasu/Library/Mobile Documents/com~apple~CloudDocs/newasu-Mac/PhDs-Degree/New/SourceCode/FaceRecognitionPython_data_store/Dataset'
 id_path = '/Users/Wasu/Downloads/CelebA/Anno/identity_CelebA.txt'
-image_name = '/Users/Wasu/Downloads/CelebA(partial)_1/features/CelebA_features_1_1000_name.csv'
-image_feature = '/Users/Wasu/Downloads/CelebA(partial)_1/features/CelebA_features_1_1000_features.csv'
-save_path = '/Users/Wasu/Downloads/CelebA(partial)_1/features/CelebA_retinaface_1_1000.csv'
+image_name = project_path + '/CelebA(partial)_2/features/CelebA_features_1001_2000_name.csv'
+image_feature = project_path + '/CelebA(partial)_2/features/CelebA_features_1001_2000_features.csv'
+save_path = project_path + '/CelebA(partial)_2/CelebA_retinaface_1001_2000.csv'
 
 # Read files
 id_df = pd.read_csv(id_path, sep=" ", header=None)

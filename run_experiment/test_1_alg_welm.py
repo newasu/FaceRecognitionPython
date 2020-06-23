@@ -17,12 +17,14 @@ from sklearn.utils.fixes import loguniform
 
 # Import my own lib
 import others.utilities as my_util
-from WELM.welm import welm
+from algorithm.welm import welm
 
 #############################################################################################
 
 # Experiment name
 exp_name = ('test_1_alg_welm')
+training_useTF = True
+test_useTF = True
 
 # Parameter settings
 numb_exp = [0, 1] # define randomseed as list
@@ -36,7 +38,7 @@ param_grid = {'distanceFunc':'euclidean',
 # Dataset path
 dataset_name = 'CelebA'
 dataset_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Dataset', 'CelebA(partial)_1'])
-dataset_path = dataset_path + 'CelebAretinaface11000(clean).txt'
+dataset_path = dataset_path + 'CelebAretinaface1_1000.txt'
 # Result path
 exp_result_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Result', 'exp_result', exp_name])
 # Grid search path
@@ -76,9 +78,19 @@ for exp_numb in numb_exp:
         for train_index, test_index in data_spliter.split(xx, yy):
             # Model
             m1 = welm()
+            
+            # Generate k-Fold indices
+            kfold_data_spliter = StratifiedKFold(n_splits=cv_numb, shuffle=True, random_state=exp_numb)
+            kfold_data_spliter.get_n_splits(xx[train_index], yy[train_index])
+            kfold_training_idx = list()
+            kfold_test_idx = list()
+            for kfold_train_index, kfold_test_index in kfold_data_spliter.split(xx[train_index], yy[train_index]):
+                kfold_training_idx.append(kfold_train_index)
+                kfold_test_idx.append(kfold_test_index)
+            del kfold_data_spliter
 
             # Grid search
-            [cv_results, avg_cv_results] = m1.grid_search_cv_parallel(xx[train_index], yy[train_index], image_id[train_index], param_grid, gridsearch_path, exp_name_seed, cv=cv_numb, cv_run=cv_run, randomseed=exp_numb)
+            [cv_results, avg_cv_results] = m1.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx[train_index], yy[train_index], image_id[train_index], param_grid, gridsearch_path, exp_name_seed, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF)
 
             if cv_run == -1:
                 # Best params
@@ -92,14 +104,15 @@ for exp_numb in numb_exp:
                 distanceFunc=best_param.distanceFunc, 
                 hiddenNodePerc=best_param.hiddenNodePerc, 
                 regC=best_param.regC, 
-                randomseed=exp_numb)
+                randomseed=exp_numb,
+                useTF=test_useTF)
 
                 # Test model
-                [predictedScores, predictedY, test_time] = m1.predict(xx[test_index], weights, beta, best_param.distanceFunc, label_classes)
+                [predictedScores, predictedY, test_time] = m1.predict(xx[test_index], weights, beta, best_param.distanceFunc, label_classes, useTF=test_useTF)
 
                 # Eval performance
                 # Performance matrix
-                performance_matrix = my_util.eval_classification_performance(yy[test_index], predictedY, label_classes)
+                performance_matrix = my_util.classification_performance_metric(yy[test_index], predictedY, label_classes)
                 # AUC
                 performance_matrix.update(my_util.cal_auc(yy[test_index], predictedScores, label_classes))
                 # Accuracy

@@ -7,13 +7,13 @@ import numpy as np
 # Params
 # number_user = range(0, 500)
 # number_user = range(500, 1000)
-number_user = range(0, 1)
+number_user = range(2000, 3000)
 
 # File paths
 id_path = '/Users/Wasu/Downloads/CelebA/Anno/identity_CelebA.txt'
 file_path = '/Users/Wasu/Downloads/CelebA/img_align_celeba'
 bbox_path = '/Users/Wasu/Downloads/CelebA/Anno/list_bbox_celeba.txt'
-sub_dataset = '/Users/Wasu/Downloads/CelebA(partial)_1'
+sub_dataset = '/Users/Wasu/Downloads/CelebA(partial)_3'
 
 # Read files
 id_df = pd.read_csv(id_path, sep=" ", header=None)
@@ -43,18 +43,20 @@ for tmp_user_id in number_user:
         # cv2.destroyAllWindows()
 
         # Copy file
-        original = file_path + '/' + tmp_user_idx['id_name'].iloc[tmp_user_sub_idx]
-        target = sub_dataset + '/img_align_celeba/' + tmp_user_idx['id_name'].iloc[tmp_user_sub_idx]
+        original = file_path + '/' + tmp_user_idx['image_id'].iloc[tmp_user_sub_idx]
+        target = sub_dataset + '/img_align_celeba/' + tmp_user_idx['image_id'].iloc[tmp_user_sub_idx]
         shutil.copyfile(original, target)
 
         # Add label to list
-        tmp_user_label.append([tmp_user_idx.iloc[tmp_user_sub_idx].id_name, tmp_user_idx.iloc[tmp_user_sub_idx].id])
+        tmp_user_label.append([tmp_user_idx.iloc[tmp_user_sub_idx].image_id, tmp_user_idx.iloc[tmp_user_sub_idx].id])
+        
+    print(tmp_user_id+1)
 
 # Write label file
 # tmp_user_label = pd.DataFrame(tmp_user_label)
 with open(sub_dataset + '/Anno/identity_CelebA.txt', 'w+') as datafile_id:
     np.savetxt(datafile_id, tmp_user_label, fmt=['%s','%s'])
 
-print()
+print('Finished')
 
 
