@@ -5,12 +5,13 @@ from sklearn.metrics import auc
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
 from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import label_binarize
 from sklearn.exceptions import UndefinedMetricWarning
 # from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.metrics import pairwise_distances
-from collections import Counter
 from scipy import linalg
+from scipy.stats import rankdata
 from shapely.geometry import LineString
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -195,11 +196,11 @@ def biometric_metric(y_true, y_pred_score, pos_label, score_order='ascending'):
     
     eval_score = {'auc':auc(fpr, tpr), 'eer':cal_eer(fpr, tpr, thresholds)}
     
-    eval_score.update(cal_far_frr(y_true, y_pred_score, pos_label, score_order=score_order))
+    eval_score.update(cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order=score_order))
     
     return eval_score
 
-def cal_far_frr(y_true, y_pred_score, pos_label, score_order='ascending', threshold_step=0.0001):
+def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', threshold_step=0.0001):
     # Find range of thresholds
     threshold_min = np.floor(y_pred_score.min() / threshold_step) * threshold_step
     threshold_max = np.ceil(y_pred_score.max() / threshold_step) * threshold_step
@@ -365,7 +366,7 @@ def triplet_loss_paring(data_id, data_class, **kwargs):
             raise Exception('Error key ({}) exists in dict'.format(key))
     del key, value
     
-    if funcParams['num_cores'] == 'all':
+    if funcParams['num_cores'] == '-1':
         funcParams['num_cores']  = multiprocessing.cpu_count()
     
     # bind data into dataframe and shuffle the orders
@@ -491,6 +492,10 @@ def line_intersection(line1_x, line1_y, line2_x, line2_y):
     elif intersection.geom_type == 'Point':
         intersection_x = np.array([intersection.x])
         intersection_y = np.array([intersection.y])
+    elif intersection.geom_type == 'MultiLineString':
+        intersection = np.asarray(intersection[0].xy)
+        intersection_x = intersection[0]
+        intersection_y = intersection[1]
     else:
         intersection_x = np.empty(0)
         intersection_y = np.empty(0)
@@ -502,4 +507,69 @@ def line_intersection(line1_x, line1_y, line2_x, line2_y):
     # plt.close()
     return intersection_x, intersection_y
 
+def find_optimal_threshold_two_clases(score_mat, true_y, unique_y, threshold_decimal=2):
+    if score_mat.ndim > 1:
+        if type(score_mat) == np.matrix:
+            score_mat = np.array(score_mat.T)[0]
+        else:
+            score_mat = score_mat.flatten()
+    threshold_step = 10**-threshold_decimal
+    # Calculate distance
+    dist_min = np.floor(score_mat.min() * (10**threshold_decimal))/(10**threshold_decimal)
+    dist_max = np.ceil(score_mat.max() * (10**threshold_decimal))/(10**threshold_decimal)
+    # Vary threshold
+    dist_confusion = np.empty((0, 3), np.float64)
+    for threshold_idx in np.arange(dist_min, (dist_max+threshold_step), threshold_step):
+        thresholded_distance_class = np.tile(unique_y['neg'], true_y.shape)
+        thresholded_distance_class[score_mat < threshold_idx] = unique_y['pos']
+        [tn, fp, fn, tp] = confusion_matrix(true_y, thresholded_distance_class).ravel()
+        dist_confusion = np.append(dist_confusion, np.expand_dims(np.array([threshold_idx, tp, tn]), axis=0), axis=0)
+    del dist_min, dist_max, thresholded_distance_class, tn, fp, fn, tp
+    # Normalize accuracy matrix
+    dist_confusion[:,1] = dist_confusion[:,1]/max(dist_confusion[:,1])
+    dist_confusion[:,2] = dist_confusion[:,2]/max(dist_confusion[:,2])
+    # Find best threshold by finding crossing point between two lines
+    [intersection_x, intersection_y] = line_intersection(dist_confusion[:,0], dist_confusion[:,1], dist_confusion[:,0], dist_confusion[:,2])
+    optimal_threshold = intersection_x
+    return optimal_threshold
 
+def exact_run_result_in_directory(result_directory_path, exact_list):
+    file_in_directory = os.listdir(result_directory_path)
+    if '.DS_Store' in file_in_directory: file_in_directory.remove('.DS_Store')
+    file_in_directory = sorted(file_in_directory)
+    exacted_result = {}
+    exacted_result['filenames'] = np.asarray(file_in_directory)
+    # Load result
+    result = {}
+    for x in range(0, len(file_in_directory)):
+        result[x] = load_numpy_file(result_directory_path + file_in_directory[x])
+    # Exact result
+    for exact_name in exact_list:
+        tmp = []
+        for x in range(0, len(file_in_directory)):
+            if exact_name in result[x]:
+                tmp.append(result[x][exact_name])
+            else:
+                tmp.append(np.nan)
+        exacted_result[exact_name] = np.asarray(tmp)
+    return exacted_result
+
+def term_retrieve_exact_result(exacted_data, data_names, term_finding, order_metric='ascending'):
+    tmp = [x[term_finding] for x in exacted_data]
+    tmp = np.vstack(tmp).T
+    if isinstance(tmp[0,0], np.number):
+        avg_mat = np.average(tmp, axis=0)
+        avg_mat = pd.DataFrame(np.average(tmp, axis=0)[np.newaxis,:], columns=data_names)
+        if order_metric == 'ascending':
+            ranked_mat = rankdata(-tmp, method='average', axis=1)
+        else:
+            ranked_mat = rankdata(tmp, method='average', axis=1)
+        sum_ranked_mat = np.sum(ranked_mat, axis=0)
+        ranked_mat = pd.DataFrame(ranked_mat, columns=data_names)
+        sum_ranked_mat = pd.DataFrame(sum_ranked_mat[np.newaxis,:], columns=data_names)
+    else:
+        avg_mat = np.nan
+        ranked_mat = np.nan
+        sum_ranked_mat = np.nan
+    retrieved_mat = pd.DataFrame(tmp, columns=data_names)
+    return retrieved_mat, avg_mat, ranked_mat, sum_ranked_mat

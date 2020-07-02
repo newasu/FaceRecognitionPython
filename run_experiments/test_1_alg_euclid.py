@@ -13,7 +13,7 @@ import numpy as np
 
 # Import my own lib
 import others.utilities as my_util
-from algorithm.paired_distance_alg import paired_distance_alg
+from algorithms.paired_distance_alg import paired_distance_alg
 
 #############################################################################################
 
@@ -21,7 +21,7 @@ from algorithm.paired_distance_alg import paired_distance_alg
 exp_name = ('test_1_alg_euclid')
 
 # Parameter settings
-numb_exp = [0, 1] # define randomseed as list
+numb_exp = [0, 1, 2, 3, 4] # define randomseed as list
 cv_numb = 5
 cv_run = -1 # -1 = run all seed, else, run only define
 param_grid = {'distanceFunc':'euclidean'}
@@ -31,8 +31,8 @@ test_size = 0.3
 # Path
 # Dataset path
 dataset_name = 'CelebA'
-dataset_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Dataset', 'CelebA_partial'])
-dataset_path = dataset_path + 'CelebA_Retinaface_1_3000.txt'
+dataset_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Dataset', 'CelebA_features'])
+dataset_path = dataset_path + 'CelebA_retinaface.txt'
 # Result path
 exp_result_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Result', 'exp_result', exp_name])
 
@@ -45,7 +45,7 @@ my_util.make_directory(exp_result_path)
 my_data = pd.read_csv(dataset_path, sep=" ", header=0)
 
 # Select only some classes
-my_data = my_data[my_data['id'].between(1, 100)]
+my_data = my_data[my_data['id'].between(1, 1000)]
 
 # Assign xx, yy and data id
 xx = my_data.iloc[:,2:].values
@@ -90,9 +90,9 @@ for exp_numb in numb_exp:
             sep_idx = int(combined_training_xx.shape[1]/2)
             unique_class = {'pos':'POS', 'neg':'NEG'}
             
-            # # Train model with best params
+            # Train model with best params
 
-            # # Test model
+            # Test model
             [predictedScores, predictedY, test_time] = distance_model.predict(combined_test_xx[:,0:sep_idx], combined_test_xx[:,sep_idx:], combined_test_yy, unique_class, best_param.classifier_threshold, distance_metric=best_param.distanceFunc)
 
             # tmp = pd.DataFrame({'y_true':combined_test_yy, 'pred_scores':predictedScores, 'pred_y':predictedY})

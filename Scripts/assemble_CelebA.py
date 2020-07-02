@@ -5,10 +5,10 @@ import pandas as pd
 
 # File paths
 project_path = '/Users/Wasu/Library/Mobile Documents/com~apple~CloudDocs/newasu-Mac/PhDs-Degree/New/SourceCode/FaceRecognitionPython_data_store/Dataset'
-id_path = '/Users/Wasu/Downloads/CelebA/Anno/identity_CelebA.txt'
-image_name = project_path + '/CelebA(partial)_2/features/CelebA_features_1001_2000_name.csv'
-image_feature = project_path + '/CelebA(partial)_2/features/CelebA_features_1001_2000_features.csv'
-save_path = project_path + '/CelebA(partial)_2/CelebA_retinaface_1001_2000.csv'
+id_path = project_path + '/CelebA/Anno/identity_CelebA.txt'
+image_name = project_path + '/CelebA_features/CelebA_features_name.csv'
+image_feature = project_path + '/CelebA_features/CelebA_features_features.csv'
+save_path = project_path + '/CelebA_features/CelebA_retinaface.csv'
 
 # Read files
 id_df = pd.read_csv(id_path, sep=" ", header=None)

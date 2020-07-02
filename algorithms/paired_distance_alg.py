@@ -14,25 +14,27 @@ class paired_distance_alg(object):
 
     def train(self, trainingDataX_anchor, trainingDataX_compared, trainingDataY, unique_y, threshold_decimal=2, distance_metric='euclidean'):
         tic = my_util.time_counter()
-        threshold_step = 10**-threshold_decimal
         # Calculate distance
         dist_mat = paired_distances(trainingDataX_anchor, trainingDataX_compared, metric=distance_metric)
-        dist_min = np.floor(dist_mat.min() * (10**threshold_decimal))/(10**threshold_decimal)
-        dist_max = np.ceil(dist_mat.max() * (10**threshold_decimal))/(10**threshold_decimal)
-        # Vary threshold
-        dist_confusion = np.empty((0, 3), np.float64)
-        for threshold_idx in np.arange(dist_min, (dist_max+threshold_step), threshold_step):
-            thresholded_distance_class = np.tile(unique_y['neg'], trainingDataY.shape)
-            thresholded_distance_class[dist_mat < threshold_idx] = unique_y['pos']
-            [tn, fp, fn, tp] = confusion_matrix(trainingDataY, thresholded_distance_class).ravel()
-            dist_confusion = np.append(dist_confusion, np.expand_dims(np.array([threshold_idx, tp, tn]), axis=0), axis=0)
-        del dist_mat, dist_min, dist_max, thresholded_distance_class, tn, fp, fn, tp
-        # Normalize accuracy matrix
-        dist_confusion[:,1] = dist_confusion[:,1]/max(dist_confusion[:,1])
-        dist_confusion[:,2] = dist_confusion[:,2]/max(dist_confusion[:,2])
-        # Find best threshold by finding crossing point between two lines
-        [intersection_x, intersection_y] = my_util.line_intersection(dist_confusion[:,0], dist_confusion[:,1], dist_confusion[:,0], dist_confusion[:,2])
-        classifier_threshold = intersection_x[0]
+        # dist_min = np.floor(dist_mat.min() * (10**threshold_decimal))/(10**threshold_decimal)
+        # dist_max = np.ceil(dist_mat.max() * (10**threshold_decimal))/(10**threshold_decimal)
+        # threshold_step = 10**-threshold_decimal
+        # # Vary threshold
+        # dist_confusion = np.empty((0, 3), np.float64)
+        # for threshold_idx in np.arange(dist_min, (dist_max+threshold_step), threshold_step):
+        #     thresholded_distance_class = np.tile(unique_y['neg'], trainingDataY.shape)
+        #     thresholded_distance_class[dist_mat < threshold_idx] = unique_y['pos']
+        #     [tn, fp, fn, tp] = confusion_matrix(trainingDataY, thresholded_distance_class).ravel()
+        #     dist_confusion = np.append(dist_confusion, np.expand_dims(np.array([threshold_idx, tp, tn]), axis=0), axis=0)
+        # del dist_mat, dist_min, dist_max, thresholded_distance_class, tn, fp, fn, tp
+        # # Normalize accuracy matrix
+        # dist_confusion[:,1] = dist_confusion[:,1]/max(dist_confusion[:,1])
+        # dist_confusion[:,2] = dist_confusion[:,2]/max(dist_confusion[:,2])
+        # # Find best threshold by finding crossing point between two lines
+        # [intersection_x, intersection_y] = my_util.line_intersection(dist_confusion[:,0], dist_confusion[:,1], dist_confusion[:,0], dist_confusion[:,2])
+        # classifier_threshold = intersection_x[0]
+        classifier_threshold = my_util.find_optimal_threshold_two_clases(dist_mat, trainingDataY, unique_y, threshold_decimal=threshold_decimal)
+        classifier_threshold = classifier_threshold[0]
         toc = my_util.time_counter()
         # Plot
         # plt.plot(dist_confusion[:,0], dist_confusion[:,1], '-')

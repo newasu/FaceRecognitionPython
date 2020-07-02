@@ -13,32 +13,34 @@ import numpy as np
 
 # Import my own lib
 import others.utilities as my_util
-from algorithm.selm import selm
-from algorithm.welm import welm
+from algorithms.selm import selm
+from algorithms.welm import welm
 
 #############################################################################################
 
 # Experiment name
-exp_name = ('test_1_alg_selm')
+exp_name = ('test_1_alg_selm_cr_sum')
 training_useTF = False
 test_useTF = False
 
 # Parameter settings
-numb_exp = [2] # define randomseed as list
+numb_exp = [0] # define randomseed as list
 cv_numb = 5
 cv_run = -1 # -1 = run all seed, else, run only define
 param_grid = {'distanceFunc':'euclidean', 
-'hiddenNodePerc':[0.20, 0.40, 0.60, 0.80, 1.00], 
-'regC':[0.001, 0.01, 0.1, 1.0, 10, 100, 1000]}
+'hiddenNodePerc':np.arange(0.1, 1.1, 0.1), 
+'regC':10**np.arange(-6, 7, dtype='float')}
 combine_rule = 'sum'
 
 test_size = 0.3
 
+pos_class = 'POS'
+
 # Path
 # Dataset path
 dataset_name = 'CelebA'
-dataset_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Dataset', 'CelebA(partial)_1'])
-dataset_path = dataset_path + 'CelebAretinaface1_1000.txt'
+dataset_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Dataset', 'CelebA_features'])
+dataset_path = dataset_path + 'CelebA_retinaface.txt'
 # Result path
 exp_result_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Result', 'exp_result', exp_name])
 # Grid search path
@@ -95,11 +97,11 @@ for exp_numb in numb_exp:
             best_param = avg_cv_results.iloc[0]
             
             # Construct triplet training dataset
-            triplet_paired_list = my_util.triplet_loss_paring(image_id[train_index], yy[train_index], randomseed=exp_numb)
+            triplet_paired_list = my_util.triplet_loss_paring(image_id[train_index], yy[train_index], randomseed=exp_numb, num_cores=-1)
             [combined_training_xx, combined_training_yy, combined_training_id] = my_util.combination_rule_paired_list(xx[train_index], image_id[train_index], triplet_paired_list, combine_rule=combine_rule)
             
             # Construct triplet test dataset
-            triplet_paired_list = my_util.triplet_loss_paring(image_id[test_index], yy[test_index], randomseed=exp_numb)
+            triplet_paired_list = my_util.triplet_loss_paring(image_id[test_index], yy[test_index], randomseed=exp_numb, num_cores=-1)
             [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(xx[test_index], image_id[test_index], triplet_paired_list, combine_rule=combine_rule)
 
             # Train model with best params
@@ -114,25 +116,30 @@ for exp_numb in numb_exp:
 
             # Test model
             [predictedScores, predictedY, test_time] = welm_model.predict(combined_test_xx, weights, beta, best_param.distanceFunc, label_classes, useTF=test_useTF)
+            
+            # tmp = pd.DataFrame({'y_true':combined_test_yy, 'pred_scores':np.array(predictedScores[:,pos_class_idx].T)[0], 'pred_y':predictedY.flatten()})
+            # tmp.to_csv('selm.csv')
+
+            pos_class_idx = label_classes == pos_class
 
             # Eval performance
             # Performance matrix
-            performance_matrix = my_util.classification_performance_metric(combined_test_yy, predictedY, label_classes)
+            performance_metric = my_util.classification_performance_metric(combined_test_yy, predictedY, label_classes)
+            # Biometric metrics
+            performance_metric.update(my_util.biometric_metric(combined_test_yy, predictedScores[:,pos_class_idx], pos_class, score_order='ascending'))
             # AUC
-            performance_matrix.update(my_util.cal_auc(combined_test_yy, predictedScores, label_classes))
-            # Accuracy
-            performance_matrix['accuracy'] = my_util.cal_accuracy(combined_test_yy, predictedY)
+            # performance_metric.update(my_util.cal_auc(combined_test_yy, predictedScores, label_classes))
 
             # Save score
-            exp_result = {'distanceFunc':best_param.distanceFunc, 'hiddenNodePerc': best_param.hiddenNodePerc, 'regC':best_param.regC, 'combine_rule':combine_rule, 'randomseed': exp_numb, 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'welm', 'experiment_name': exp_name, 'predictedScores':predictedScores, 'predictedY':predictedY, 'test_image_id':image_id[test_index], 'dataset_name':dataset_name}
-            exp_result.update(performance_matrix)
+            exp_result = {'distanceFunc':best_param.distanceFunc, 'hiddenNodePerc': best_param.hiddenNodePerc, 'regC':best_param.regC, 'combine_rule':combine_rule, 'randomseed': exp_numb, 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'selm', 'experiment_name': exp_name, 'predictedScores':predictedScores, 'predictedY':predictedY, 'test_image_id':image_id[test_index], 'dataset_name':dataset_name}
+            exp_result.update(performance_metric)
             my_util.save_numpy(exp_result, exp_result_path, exp_name_seed)
 
             print('Finished ' + exp_name_seed)
 
             del weights, weightID, beta, label_classes, training_time
             del predictedScores, predictedY, test_time
-            del performance_matrix, exp_result
+            del performance_metric, exp_result
 
         del train_index, test_index
 
