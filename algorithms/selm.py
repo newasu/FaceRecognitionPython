@@ -28,7 +28,7 @@ class selm(object):
         
         # Assign params
         modelParams = {}
-        modelParams['num_cores']  = multiprocessing.cpu_count()
+        modelParams['num_cores'] = my_util.limit_cpu_used()
         modelParams['useTF'] = False
         modelParams['combine_rule'] = 'sum'
         modelParams['cv_run'] = -1 # -1 = run all seed, else, run only defined seed
@@ -64,11 +64,11 @@ class selm(object):
         for kfold_idx in cv_run:
             
             # Construct triplet training dataset
-            triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_training_idx[kfold_idx]], trainingDataY[kfold_training_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=-1)
+            triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_training_idx[kfold_idx]], trainingDataY[kfold_training_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=1)
             [combined_training_xx, combined_training_yy, combined_training_id] = my_util.combination_rule_paired_list(trainingDataX[kfold_training_idx[kfold_idx]], trainingDataID[kfold_training_idx[kfold_idx]], triplet_paired_list, combine_rule=modelParams['combine_rule'])
             
             # Construct triplet test dataset
-            triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_test_idx[kfold_idx]], trainingDataY[kfold_test_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=-1)
+            triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_test_idx[kfold_idx]], trainingDataY[kfold_test_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=1)
             [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(trainingDataX[kfold_test_idx[kfold_idx]], trainingDataID[kfold_test_idx[kfold_idx]], triplet_paired_list, combine_rule=modelParams['combine_rule'])
             
             tmp_training_idx = np.arange(0, combined_training_yy.size)
@@ -77,13 +77,13 @@ class selm(object):
             other_param = {'kfold_idx':kfold_idx, 'randomseed':modelParams['randomseed'], 'exp_path':exp_path,'exp_name':exp_name, 'kfold_training_data_idx':tmp_training_idx, 'kfold_test_data_idx':tmp_test_idx, 'my_save_directory':my_save_directory, 'total_run':total_run, 'useTF':modelParams['useTF']}
             
             # Run grid search parallel
-            tmp_cv_results = Parallel(n_jobs=modelParams['num_cores'])(delayed(welm_model.do_gridsearch_parallel)(gs_idx, np.concatenate((combined_training_xx, combined_test_xx)), np.concatenate((combined_training_yy, combined_test_yy)), np.concatenate((combined_training_id, combined_test_id)), param_list[gs_idx], other_param) for gs_idx in range(0, param_list.shape[0]))
-            cv_results = cv_results.append(pd.DataFrame(tmp_cv_results), ignore_index=True)
+            # tmp_cv_results = Parallel(n_jobs=modelParams['num_cores'])(delayed(welm_model.do_gridsearch_parallel)(gs_idx, np.concatenate((combined_training_xx, combined_test_xx)), np.concatenate((combined_training_yy, combined_test_yy)), np.concatenate((combined_training_id, combined_test_id)), param_list[gs_idx], other_param) for gs_idx in range(0, param_list.shape[0]))
+            # cv_results = cv_results.append(pd.DataFrame(tmp_cv_results), ignore_index=True)
             
             # # Run grid search by for loop
-            # for gs_idx in range(0, param_list.shape[0]):
-            #     tmp_cv_results = welm_model.do_gridsearch_parallel(gs_idx, np.concatenate((combined_training_xx, combined_test_xx)), np.concatenate((combined_training_yy, combined_test_yy)), np.concatenate((combined_training_id, combined_test_id)), param_list[gs_idx], other_param)
-            #     cv_results = cv_results.append([tmp_cv_results], ignore_index=True)
+            for gs_idx in range(0, param_list.shape[0]):
+                tmp_cv_results = welm_model.do_gridsearch_parallel(gs_idx, np.concatenate((combined_training_xx, combined_test_xx)), np.concatenate((combined_training_yy, combined_test_yy)), np.concatenate((combined_training_id, combined_test_id)), param_list[gs_idx], other_param)
+                cv_results = cv_results.append([tmp_cv_results], ignore_index=True)
             
             del tmp_cv_results
                 
@@ -96,7 +96,7 @@ class selm(object):
         
         # Assign params
         modelParams = {}
-        modelParams['num_cores']  = multiprocessing.cpu_count()
+        modelParams['num_cores'] = my_util.limit_cpu_used()
         modelParams['useTF'] = False
         modelParams['combine_rule'] = 'sum'
         modelParams['cv_run'] = -1 # -1 = run all seed, else, run only defined seed
@@ -133,11 +133,11 @@ class selm(object):
         for kfold_idx in cv_run:
             
             # Construct triplet training dataset
-            triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_training_idx[kfold_idx]], trainingDataY[kfold_training_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=-1)
+            triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_training_idx[kfold_idx]], trainingDataY[kfold_training_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=1)
             [combined_training_xx, combined_training_yy, combined_training_id] = my_util.combination_rule_paired_list(trainingDataX[kfold_training_idx[kfold_idx]], trainingDataID[kfold_training_idx[kfold_idx]], triplet_paired_list, combine_rule=modelParams['combine_rule'])
             
             # Construct triplet test dataset
-            triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_test_idx[kfold_idx]], trainingDataY[kfold_test_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=-1)
+            triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_test_idx[kfold_idx]], trainingDataY[kfold_test_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=1)
             [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(trainingDataX[kfold_test_idx[kfold_idx]], trainingDataID[kfold_test_idx[kfold_idx]], triplet_paired_list, combine_rule=modelParams['combine_rule'])
             
             tmp_training_idx = np.arange(0, combined_training_yy.size)
@@ -146,7 +146,7 @@ class selm(object):
             other_param = {'kfold_idx':kfold_idx, 'randomseed':modelParams['randomseed'], 'exp_path':exp_path,'exp_name':exp_name, 'kfold_training_data_idx':tmp_training_idx, 'kfold_test_data_idx':tmp_test_idx, 'my_save_directory':my_save_directory, 'total_run':total_run, 'useTF':modelParams['useTF'], 'pos_class':modelParams['pos_class']}
             
             # Run grid search parallel
-            # tmp_cv_results = Parallel(n_jobs=modelParams['num_cores'])(delayed(welm_model.do_gridsearch_parallel)(gs_idx, np.concatenate((combined_training_xx, combined_test_xx)), np.concatenate((combined_training_yy, combined_test_yy)), np.concatenate((combined_training_id, combined_test_id)), param_list[gs_idx], other_param) for gs_idx in range(0, param_list.shape[0]))
+            # tmp_cv_results = Parallel(n_jobs=modelParams['num_cores'])(delayed(welm_model.do_gridsearch_parallel_thresholding)(gs_idx, np.concatenate((combined_training_xx, combined_test_xx)), np.concatenate((combined_training_yy, combined_test_yy)), np.concatenate((combined_training_id, combined_test_id)), param_list[gs_idx], other_param) for gs_idx in range(0, param_list.shape[0]))
             # cv_results = cv_results.append(pd.DataFrame(tmp_cv_results), ignore_index=True)
             
             # Run grid search by for loop

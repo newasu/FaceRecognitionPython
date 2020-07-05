@@ -19,7 +19,7 @@ from algorithms.welm import welm
 #############################################################################################
 
 # Experiment name
-exp_name = ('exp_1_alg_selmDist')
+exp_name = ('exp_2_alg_selmDist')
 training_useTF = False
 test_useTF = False
 
@@ -61,7 +61,7 @@ yy = pd.read_csv(dataset_path, sep=" ", header=0).id.values
 yy = yy[np.where(np.logical_and(yy>=use_data_bet[0], yy<=use_data_bet[1]))]
 
 # Split training and test set
-[exp_test_sep_idx, exp_training_sep_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_exp_kfold, random_state=0)
+[exp_training_sep_idx, exp_test_sep_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_exp_kfold, random_state=0)
 del yy
 
 # Run experiment
@@ -94,7 +94,7 @@ for exp_numb in run_exp_kfold:
         [kfold_training_idx, kfold_test_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_train_kfold, random_state=exp_numb)
         
         # Grid search
-        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, exp_name_seed, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=my_util.limit_cpu_used(cpu_used_perc=0.2))
+        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, exp_name_seed, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=2)
 
         if cv_run == -1:
             # Clear and reload dataset

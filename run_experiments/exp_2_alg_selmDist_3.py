@@ -19,13 +19,13 @@ from algorithms.welm import welm
 #############################################################################################
 
 # Experiment name
-exp_name = ('exp_1_alg_selmDist')
+exp_name = ('exp_2_alg_selmDist')
 training_useTF = False
 test_useTF = False
 
 # Parameter settings
 # Whole run round settings
-run_exp_kfold = [0, 1, 2, 3, 4] # define randomseed as list
+run_exp_kfold = [3] # define randomseed as list
 numb_exp_kfold = 5
 
 # k-fold for training
@@ -61,7 +61,7 @@ yy = pd.read_csv(dataset_path, sep=" ", header=0).id.values
 yy = yy[np.where(np.logical_and(yy>=use_data_bet[0], yy<=use_data_bet[1]))]
 
 # Split training and test set
-[exp_test_sep_idx, exp_training_sep_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_exp_kfold, random_state=0)
+[exp_training_sep_idx, exp_test_sep_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_exp_kfold, random_state=0)
 del yy
 
 # Run experiment
@@ -94,7 +94,7 @@ for exp_numb in run_exp_kfold:
         [kfold_training_idx, kfold_test_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_train_kfold, random_state=exp_numb)
         
         # Grid search
-        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, exp_name_seed, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=my_util.limit_cpu_used(cpu_used_perc=0.2))
+        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, exp_name_seed, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=1)
 
         if cv_run == -1:
             # Clear and reload dataset
@@ -113,11 +113,11 @@ for exp_numb in run_exp_kfold:
             best_param = avg_cv_results.iloc[0]
             
             # Construct triplet training dataset
-            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_training_sep_idx[exp_numb]], yy[exp_training_sep_idx[exp_numb]], randomseed=exp_numb, num_cores=-1)
+            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_training_sep_idx[exp_numb]], yy[exp_training_sep_idx[exp_numb]], randomseed=exp_numb, num_cores=1)
             [combined_training_xx, combined_training_yy, combined_training_id] = my_util.combination_rule_paired_list(xx[exp_training_sep_idx[exp_numb]], image_id[exp_training_sep_idx[exp_numb]], triplet_paired_list, combine_rule=combine_rule)
             
             # Construct triplet test dataset
-            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_test_sep_idx[exp_numb]], yy[exp_test_sep_idx[exp_numb]], randomseed=exp_numb, num_cores=-1)
+            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_test_sep_idx[exp_numb]], yy[exp_test_sep_idx[exp_numb]], randomseed=exp_numb, num_cores=1)
             [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(xx[exp_test_sep_idx[exp_numb]], image_id[exp_test_sep_idx[exp_numb]], triplet_paired_list, combine_rule=combine_rule)
 
             # Train model with best params

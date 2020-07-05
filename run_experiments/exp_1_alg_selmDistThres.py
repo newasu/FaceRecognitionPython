@@ -94,7 +94,7 @@ for exp_numb in run_exp_kfold:
         [kfold_training_idx, kfold_test_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_train_kfold, random_state=exp_numb)
         
         # Grid search
-        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel_thresholding(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, exp_name_seed, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule)
+        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel_thresholding(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, exp_name_seed, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=2)
 
         if cv_run == -1:
             # Clear and reload dataset

@@ -357,7 +357,7 @@ def cal_inv_func(pass_inv_data):
 def triplet_loss_paring(data_id, data_class, **kwargs):
     # Assign params
     funcParams = {}
-    funcParams['num_cores']  = 1
+    funcParams['num_cores'] = -1
     funcParams['randomseed'] = 0
     for key, value in kwargs.items():
         if key in funcParams:
@@ -367,7 +367,7 @@ def triplet_loss_paring(data_id, data_class, **kwargs):
     del key, value
     
     if funcParams['num_cores'] == '-1':
-        funcParams['num_cores']  = multiprocessing.cpu_count()
+        funcParams['num_cores'] = multiprocessing.cpu_count()
     
     # bind data into dataframe and shuffle the orders
     data = pd.DataFrame({'image_id': data_id, 'image_class': data_class})
@@ -573,3 +573,6 @@ def term_retrieve_exact_result(exacted_data, data_names, term_finding, order_met
         sum_ranked_mat = np.nan
     retrieved_mat = pd.DataFrame(tmp, columns=data_names)
     return retrieved_mat, avg_mat, ranked_mat, sum_ranked_mat
+
+def limit_cpu_used(cpu_used_perc=0.8):
+    return np.int(np.ceil(multiprocessing.cpu_count() * cpu_used_perc))

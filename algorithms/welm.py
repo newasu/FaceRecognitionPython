@@ -176,7 +176,7 @@ class welm(object):
 
         # Assign params
         modelParams = {}
-        modelParams['num_cores']  = multiprocessing.cpu_count()
+        modelParams['num_cores'] = my_util.limit_cpu_used()
         modelParams['useTF'] = False
         # modelParams['cv'] = len(kfold_training_idx)
         modelParams['cv_run'] = -1 # -1 = run all seed, else, run only defined seed
@@ -355,7 +355,7 @@ class welm(object):
 
         # Assign params
         modelParams = {}
-        modelParams['num_cores']  = multiprocessing.cpu_count()
+        modelParams['num_cores'] = my_util.limit_cpu_used()
         modelParams['useTF'] = False
         modelParams['cv_run'] = -1 # -1 = run all seed, else, run only defined seed
         modelParams['randomseed'] = 0
