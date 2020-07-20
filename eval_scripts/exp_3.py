@@ -19,14 +19,17 @@ exact_list = ['distanceFunc', 'hiddenNodePerc', 'regC', 'combine_rule', 'randoms
 
 exp_result_path = '/Users/Wasu/Library/Mobile Documents/com~apple~CloudDocs/newasu-Mac/PhDs-Degree/New/SourceCode/FaceRecognitionPython_data_store/Result/exp_result/'
 
-euclid = my_util.exact_run_result_in_directory((exp_result_path + 'exp_1_alg_euclid/'), exact_list)
-selm_euclid_dist = my_util.exact_run_result_in_directory((exp_result_path + 'exp_1_alg_selmEuclidDist/'), exact_list)
-selm_euclid_dist_pos = my_util.exact_run_result_in_directory((exp_result_path + 'exp_1_alg_selmEuclidDistPOS/'), exact_list)
-selm_rbf_dist = my_util.exact_run_result_in_directory((exp_result_path + 'exp_1_alg_selmRBFDist/'), exact_list)
-selm_rbf_dist_pos = my_util.exact_run_result_in_directory((exp_result_path + 'exp_1_alg_selmRBFDistPOS/'), exact_list)
+euclid = my_util.exact_run_result_in_directory((exp_result_path + 'exp_3_alg_euclid/'), exact_list)
+# selm_euclid_dist = my_util.exact_run_result_in_directory((exp_result_path + 'exp_3_alg_selmEuclidDist/'), exact_list)
+selm_euclid_dist_pos = my_util.exact_run_result_in_directory((exp_result_path + 'exp_3_alg_selmEuclidDistPOS/'), exact_list)
+# selm_rbf_dist = my_util.exact_run_result_in_directory((exp_result_path + 'exp_3_alg_selmRBFDist/'), exact_list)
+# selm_rbf_dist_pos = my_util.exact_run_result_in_directory((exp_result_path + 'exp_3_alg_selmRBFDistPOS/'), exact_list)
 
-exacted_data = [euclid, selm_euclid_dist, selm_euclid_dist_pos, selm_rbf_dist, selm_rbf_dist_pos]
-result_names = ['euclid', 'selm_euclid_dist', 'selm_euclid_dist_pos', 'selm_rbf_dist', 'selm_rbf_dist_pos']
+# exacted_data = [euclid, selm_euclid_dist, selm_euclid_dist_pos, selm_rbf_dist, selm_rbf_dist_pos]
+# result_names = ['euclid', 'selm_euclid_dist', 'selm_euclid_dist_pos', 'selm_rbf_dist', 'selm_rbf_dist_pos']
+
+exacted_data = [euclid, selm_euclid_dist_pos]
+result_names = ['euclid', 'selm_euclid_dist_pos']
 
 [retrieved_mat, avg_mat, ranked_mat, sum_ranked_mat] = my_util.exact_classes_result_eval_retrieve(exacted_data, result_names, 'f1score', metric_ordering='ascending') # multiply 100 to be %
 [retrieved_mat, avg_mat, ranked_mat, sum_ranked_mat] = my_util.exact_result_eval_retrieve(exacted_data, result_names, 'accuracy', metric_ordering='ascending') # multiply 100 to be %

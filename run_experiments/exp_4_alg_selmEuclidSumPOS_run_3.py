@@ -19,13 +19,14 @@ from algorithms.welm import welm
 #############################################################################################
 
 # Experiment name
-exp_name = ('exp_1_alg_selmDist')
+exp_name = ('exp_4_alg_selmEuclidSumPOS')
+query_exp_name = ('exp_4_alg_selmEuclidSumPOS')
 training_useTF = False
 test_useTF = False
 
 # Parameter settings
 # Whole run round settings
-run_exp_kfold = [0, 1, 2, 3, 4] # define randomseed as list
+run_exp_kfold = [3] # define randomseed as list
 numb_exp_kfold = 5
 
 # k-fold for training
@@ -34,17 +35,18 @@ cv_run = -1 # -1 = run all fold, else, run only define
 
 # Algorithm parameters
 param_grid = {'distanceFunc':'euclidean', 
-'hiddenNodePerc':np.arange(0.1, 1.1, 0.1), 
-'regC':10**np.arange(-6, 7, dtype='float')}
-combine_rule = 'distance'
+              'kernel_param':0, 
+              'hiddenNodePerc':(np.arange(1, 11)/10), 
+              'regC':10**np.arange(-6, 7, dtype='float')}
+combine_rule = 'sum'
 
 pos_class = 'POS'
 
 # Path
 # Dataset path
-dataset_name = 'CelebA'
-dataset_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Dataset', 'CelebA_features'])
-dataset_path = dataset_path + 'CelebA_retinaface.txt'
+dataset_name = 'Diveface'
+dataset_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
+dataset_path = dataset_path + 'Diveface_retinaface.txt'
 # Result path
 exp_result_path = my_util.get_current_path(additional_path=['FaceRecognitionPython_data_store', 'Result', 'exp_result', exp_name])
 # Grid search path
@@ -73,51 +75,49 @@ for exp_numb in run_exp_kfold:
     my_data = pd.read_csv(dataset_path, sep=" ", header=0)
     my_data = my_data[my_data['id'].between(use_data_bet[0], use_data_bet[1])]
     my_data = my_data.iloc[exp_training_sep_idx[exp_numb]]
-    xx = my_data.iloc[:,2:].values
+    xx = my_data.iloc[:,8:].values
     yy = my_data.id.values
-    image_id = my_data.image_id.values
+    image_id = my_data.filename.values
     del my_data
 
+    # Run experiment each iterative
     if not my_util.is_path_available(exp_result_path + exp_name_seed + '.npy'):
+        # Run experiment if not available
 
-        # Run experiment each iterative
-            
-        # from collections import Counter
-        # data_class_freq = Counter(yy[train_index])
-        # unique_class = np.array(list(data_class_freq.keys()))
-        # data_class_freq = np.array(list(data_class_freq.values()))
-        
         # Initial model
         selm_model = selm()
         
         # Generate k-fold index for training
         [kfold_training_idx, kfold_test_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_train_kfold, random_state=exp_numb)
         
+        query_exp_name_seed = (query_exp_name + '_run_' + str(exp_numb))
+        
         # Grid search
-        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, exp_name_seed, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=my_util.limit_cpu_used(cpu_used_perc=0.2))
+        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, query_exp_name_seed, pos_class=pos_class, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=9)
 
         if cv_run == -1:
             # Clear and reload dataset
             del xx, yy, image_id
             my_data = pd.read_csv(dataset_path, sep=" ", header=0)
             my_data = my_data[my_data['id'].between(use_data_bet[0], use_data_bet[1])]
-            xx = my_data.iloc[:,2:].values
+            xx = my_data.iloc[:,8:].values
             yy = my_data.id.values
-            image_id = my_data.image_id.values
+            image_id = my_data.filename.values
             del my_data
             
             # Initial model
             welm_model = welm()
             
             # Best params
+            avg_cv_results = avg_cv_results.sort_values(by='auc_pos', ascending=False)
             best_param = avg_cv_results.iloc[0]
             
             # Construct triplet training dataset
-            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_training_sep_idx[exp_numb]], yy[exp_training_sep_idx[exp_numb]], randomseed=exp_numb, num_cores=-1)
+            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_training_sep_idx[exp_numb]], yy[exp_training_sep_idx[exp_numb]], randomseed=exp_numb)
             [combined_training_xx, combined_training_yy, combined_training_id] = my_util.combination_rule_paired_list(xx[exp_training_sep_idx[exp_numb]], image_id[exp_training_sep_idx[exp_numb]], triplet_paired_list, combine_rule=combine_rule)
             
             # Construct triplet test dataset
-            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_test_sep_idx[exp_numb]], yy[exp_test_sep_idx[exp_numb]], randomseed=exp_numb, num_cores=-1)
+            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_test_sep_idx[exp_numb]], yy[exp_test_sep_idx[exp_numb]], randomseed=exp_numb)
             [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(xx[exp_test_sep_idx[exp_numb]], image_id[exp_test_sep_idx[exp_numb]], triplet_paired_list, combine_rule=combine_rule)
 
             # Train model with best params
@@ -125,13 +125,14 @@ for exp_numb in run_exp_kfold:
             combined_training_xx, combined_training_yy, 
             trainingDataID=combined_training_id, 
             distanceFunc=best_param.distanceFunc, 
+            kernel_param=best_param.kernel_param,
             hiddenNodePerc=best_param.hiddenNodePerc, 
             regC=best_param.regC, 
             randomseed=exp_numb,
             useTF=test_useTF)
 
             # Test model
-            [predictedScores, predictedY, test_time] = welm_model.predict(combined_test_xx, weights, beta, best_param.distanceFunc, label_classes, useTF=test_useTF)
+            [predictedScores, predictedY, test_time] = welm_model.predict(combined_test_xx, weights, beta, best_param.distanceFunc, best_param.kernel_param, label_classes, useTF=test_useTF)
 
             # Eval performance
             pos_class_idx = label_classes == pos_class
@@ -141,7 +142,7 @@ for exp_numb in run_exp_kfold:
             performance_metric.update(my_util.biometric_metric(combined_test_yy, predictedScores[:,pos_class_idx], pos_class, score_order='ascending'))
 
             # Save score
-            exp_result = {'distanceFunc':best_param.distanceFunc, 'hiddenNodePerc': best_param.hiddenNodePerc, 'regC':best_param.regC, 'combine_rule':combine_rule, 'randomseed': exp_numb, 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'selm', 'experiment_name': exp_name, 'predictedScores':predictedScores, 'predictedY':predictedY, 'test_image_id':image_id[exp_test_sep_idx[exp_numb]], 'dataset_name':dataset_name}
+            exp_result = {'distanceFunc':best_param.distanceFunc, 'kernel_param':best_param.kernel_param, 'hiddenNodePerc': best_param.hiddenNodePerc, 'regC':best_param.regC, 'combine_rule':combine_rule, 'randomseed': exp_numb, 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'selm', 'experiment_name': exp_name, 'predictedScores':predictedScores, 'predictedY':predictedY, 'test_image_id':image_id[exp_test_sep_idx[exp_numb]], 'dataset_name':dataset_name}
             exp_result.update(performance_metric)
             my_util.save_numpy(exp_result, exp_result_path, exp_name_seed)
 

@@ -127,6 +127,6 @@ class paired_distance_alg(object):
             del eval_scores, tmp_cv_results
                 
         # Average cv_results
-        [cv_results, avg_cv_results] = my_util.average_gridsearch(cv_results, ['distanceFunc', 'classifier_threshold'])
+        [cv_results, avg_cv_results] = my_util.average_gridsearch(cv_results, ['distanceFunc', 'classifier_threshold'], eval_metric=[['auc', 'descending'], ['f1score', 'descending']])
 
         return cv_results, avg_cv_results

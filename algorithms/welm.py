@@ -50,6 +50,7 @@ class welm(object):
         modelParams['regC'] = 1
         modelParams['randomseed'] = 0
         modelParams['distanceFunc'] = 'euclidean'
+        modelParams['kernel_param'] = None
         modelParams['trainingDataID'] = np.array(range(0, trainingDataX.shape[0]))
         modelParams['useTF'] = False
         for key, value in kwargs.items():
@@ -60,15 +61,15 @@ class welm(object):
 
         [weights, trainingWeightDataID] = self.initHidden(trainingDataX, modelParams['trainingDataID'], modelParams['hiddenNodePerc'], modelParams['randomseed'])
         tic = my_util.time_counter()
-        [beta, label_classes] = self.trainModel(trainingDataX, trainingDataY, weights, modelParams['regC'], modelParams['distanceFunc'], useTF=modelParams['useTF'])
+        [beta, label_classes] = self.trainModel(trainingDataX, trainingDataY, weights, modelParams['regC'], modelParams['distanceFunc'], modelParams['kernel_param'], useTF=modelParams['useTF'])
         toc = my_util.time_counter()
         # Timer
         run_time = toc-tic
 
         return weights, trainingWeightDataID, beta, label_classes, run_time
 
-    def trainModel(self, trainingDataX, trainingDataY, weights, regC, distanceFunc, useTF=False):
-        simKernel = my_util.calculate_kernel(trainingDataX, weights, distanceFunc, useTF=useTF)
+    def trainModel(self, trainingDataX, trainingDataY, weights, regC, distanceFunc, kernel_param, useTF=False):
+        simKernel = my_util.calculate_kernel(trainingDataX, weights, distanceFunc, kernel_param=kernel_param, useTF=useTF)
 
         # integer encode
         label_encoder = LabelEncoder()
@@ -97,9 +98,9 @@ class welm(object):
 
         return beta, label_classes
 
-    def predict(self, testDataX, weights, beta, distanceFunc, label_classes, useTF=False):
+    def predict(self, testDataX, weights, beta, distanceFunc, kernel_param, label_classes, useTF=False):
         tic = my_util.time_counter()
-        simKernel = my_util.calculate_kernel(testDataX, weights, distanceFunc, useTF=useTF)
+        simKernel = my_util.calculate_kernel(testDataX, weights, distanceFunc, kernel_param, useTF=useTF)
         predictedScores = simKernel * beta
         toc = my_util.time_counter()
         predictedY = np.argmax(predictedScores, axis=1)
@@ -112,15 +113,16 @@ class welm(object):
     def do_gridsearch_parallel(self, gs_idx, trainingDataX, trainingDataY, trainingDataID, gs_param, other_param):
         # Prepare used parameters
         tmp_distanceFunc = gs_param[0]
-        tmp_hiddenNodePerc = gs_param[1]
+        tmp_kernel_param = gs_param[1].astype(float)
+        tmp_hiddenNodePerc = gs_param[2]
         if tmp_hiddenNodePerc.find('.') == -1:
             tmp_hiddenNodePerc = tmp_hiddenNodePerc.astype(int)
         else:
             tmp_hiddenNodePerc = tmp_hiddenNodePerc.astype(float)
-        tmp_regC = gs_param[2].astype(float)
+        tmp_regC = gs_param[3].astype(float)
         
         # Prepare save filename
-        my_save_name = ('kf_' + str(other_param['kfold_idx']) + '_dtf_' + str(tmp_distanceFunc) + '_hdn_' + str(tmp_hiddenNodePerc) + '_rc_' + str(tmp_regC) + '_rd_' + str(other_param['randomseed']) )
+        my_save_name = ('kf_' + str(other_param['kfold_idx']) + '_kn_' + str(tmp_distanceFunc) + '_kp_' + str(tmp_kernel_param) + '_hdn_' + str(tmp_hiddenNodePerc) + '_rc_' + str(tmp_regC) + '_run_' + str(other_param['randomseed']) )
         my_save_name = my_save_name.replace(".", "d")
         my_save_path = my_util.join_path(other_param['my_save_directory'], (my_save_name + '.npy'))
         
@@ -134,24 +136,23 @@ class welm(object):
             trainingDataY[other_param['kfold_training_data_idx']], 
             trainingDataID=trainingDataID[other_param['kfold_training_data_idx']], 
             distanceFunc=tmp_distanceFunc, 
+            kernel_param=tmp_kernel_param,
             hiddenNodePerc=tmp_hiddenNodePerc, 
             regC=tmp_regC, 
             randomseed=other_param['randomseed'],
             useTF=other_param['useTF'])
 
             # Test model
-            [predictedScores, predictedY, test_time] = self.predict(trainingDataX[other_param['kfold_test_data_idx']], weights, beta, tmp_distanceFunc, label_classes, useTF=other_param['useTF'])
+            [predictedScores, predictedY, test_time] = self.predict(trainingDataX[other_param['kfold_test_data_idx']], weights, beta, tmp_distanceFunc, tmp_kernel_param, label_classes, useTF=other_param['useTF'])
 
             # Evaluate performance
             # AUC
             eval_scores = my_util.cal_auc(trainingDataY[other_param['kfold_test_data_idx']], predictedScores, label_classes)
-            # Accuracy
-            eval_scores['accuracy'] = my_util.cal_accuracy(trainingDataY[other_param['kfold_test_data_idx']], predictedY)
             # Performance matrix
             performance_matrix = my_util.classification_performance_metric(trainingDataY[other_param['kfold_test_data_idx']], predictedY, label_classes)
             
             # Prepare model to save
-            my_model = {'distanceFunc':tmp_distanceFunc, 'hiddenNodePerc': tmp_hiddenNodePerc, 'regC':tmp_regC, 'randomseed': other_param['randomseed'], 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'welm', 'experiment_name': other_param['exp_name']}
+            my_model = {'distanceFunc':tmp_distanceFunc, 'kernel_param':tmp_kernel_param, 'hiddenNodePerc': tmp_hiddenNodePerc, 'regC':tmp_regC, 'randomseed': other_param['randomseed'], 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'welm', 'experiment_name': other_param['exp_name'], 'pos_class': other_param['pos_class']}
             my_model.update(eval_scores)
             my_model.update({'f1score_mean': performance_matrix['f1score_mean']})
             # Remove model to reduce file size
@@ -163,9 +164,11 @@ class welm(object):
         # Bind a model performance result into the table
         tmp_cv_results = {'fold': other_param['kfold_idx'], 
         'distanceFunc': my_model['distanceFunc'], 
+        'kernel_param': my_model['kernel_param'], 
         'hiddenNodePerc': my_model['hiddenNodePerc'], 
         'regC': my_model['regC'], 
         'auc': my_model['auc_mean'],
+        'auc_pos': my_model['auc'][my_model['label_classes']==my_model['pos_class']][0],
         'f1score': my_model['f1score_mean']}
 
         print('WELM-Fold: ' + str(other_param['kfold_idx']) + ', gs_idx: ' + str(gs_idx+1) + '/' +  other_param['total_run'])

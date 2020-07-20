@@ -10,6 +10,7 @@ from sklearn.preprocessing import label_binarize
 from sklearn.exceptions import UndefinedMetricWarning
 # from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.metrics import pairwise_distances
+from sklearn.metrics import pairwise
 from scipy import linalg
 from scipy.stats import rankdata
 from shapely.geometry import LineString
@@ -274,7 +275,7 @@ def cal_accuracy(y_true, y_pred):
     return eval_score
 
 def load_numpy_file(save_path):
-    return np.load(save_path ,allow_pickle='TRUE').item()
+    return np.load(save_path, allow_pickle=True).item()
 
 def save_numpy(model, save_directory, save_name, doSilent=True):
     # Make directory
@@ -288,7 +289,7 @@ def save_numpy(model, save_directory, save_name, doSilent=True):
         print()
     pass
 
-def average_gridsearch(cv_results, sortby, eval_metric=[['auc', 'descending'], ['f1score', 'descending']]):
+def average_gridsearch(cv_results, sortby, eval_metric=[['auc', 'descending'], ['auc_pos', 'descending'], ['f1score', 'descending']]):
     metric_sortby = []
     sortby_order = []
     for tmp_eval_metric in eval_metric:
@@ -299,25 +300,23 @@ def average_gridsearch(cv_results, sortby, eval_metric=[['auc', 'descending'], [
             sortby_order.append(True)
     
     numb_fold = np.unique(cv_results.fold).size
-    # Average each fold in table
+    # Sort each fold in table
     cv_results = cv_results.sort_values(by=(sortby + ['fold']))
-    # Average AUC
-    avg_auc = np.cumsum(cv_results.auc.values, 0)[numb_fold-1::numb_fold]/float(numb_fold)
-    avg_auc[1:] = avg_auc[1:] - avg_auc[:-1]
-    # Average F1 scores
-    avg_f1score = np.cumsum(cv_results.f1score.values, 0)[numb_fold-1::numb_fold]/float(numb_fold)
-    avg_f1score[1:] = avg_f1score[1:] - avg_f1score[:-1]
-    # Average params
-    avg_param = cv_results[sortby].iloc[::numb_fold].values
-    # Average cv_results
-    avg_cv_results = np.concatenate((avg_param, avg_auc[:, None], avg_f1score[:, None]), axis=1)
+    # Average
+    avg_cv_results = cv_results[sortby].iloc[::numb_fold].values
+    avg_result = {}
+    for ag_idx in eval_metric:
+        avg_result[ag_idx[0]] = np.cumsum(cv_results[ag_idx[0]].values, 0)[numb_fold-1::numb_fold]/float(numb_fold)
+        avg_result[ag_idx[0]][1:] = avg_result[ag_idx[0]][1:] - avg_result[ag_idx[0]][:-1]
+        avg_cv_results = np.concatenate((avg_cv_results, avg_result[ag_idx[0]][:, None]), axis=1)
+    # Bind into dataframe
     avg_cv_results = pd.DataFrame(data=avg_cv_results, columns=cv_results.columns[1:].values)
     avg_cv_results = avg_cv_results.sort_values(by=metric_sortby, ascending=sortby_order)
     # Clear index
     cv_results = cv_results.reset_index(drop=True)
     return cv_results, avg_cv_results
 
-def calculate_kernel(m1, m2, kernelFunc, useTF=False):
+def calculate_kernel(m1, m2, kernelFunc, kernel_param=None, useTF=False):
     kernel_mat = []
     if useTF:
         
@@ -342,10 +341,19 @@ def calculate_kernel(m1, m2, kernelFunc, useTF=False):
             del kernel_row, m1_tensor, m2_tensor
         else:
             raise Exception('There is no kernelFunc match in condition in calculate_kernel function.')
-                
+            
     else:
-        # simKernel = euclidean_distances(m1, m2, squared=False)
-        kernel_mat = pairwise_distances(m1, m2, metric=kernelFunc)
+        if kernelFunc == 'euclidean':
+            # simKernel = euclidean_distances(m1, m2, squared=False)
+            kernel_mat = pairwise_distances(m1, m2, metric=kernelFunc)
+        elif kernelFunc == 'cosine':
+            kernel_mat = pairwise.cosine_similarity(m1, m2)
+        elif kernelFunc == 'rbf':
+            kernel_mat = pairwise.rbf_kernel(m1, m2, gamma=kernel_param)
+        elif kernelFunc == 'sigmoid':
+            kernel_mat = pairwise.sigmoid_kernel(m1, m2, gamma=kernel_param, coef0=kernel_param)
+        elif kernelFunc == 'polynomial':
+            kernel_mat = pairwise.polynomial_kernel(m1, m2, degree=kernel_param, gamma=kernel_param, coef0=kernel_param)
     
     return kernel_mat
 
@@ -357,7 +365,7 @@ def cal_inv_func(pass_inv_data):
 def triplet_loss_paring(data_id, data_class, **kwargs):
     # Assign params
     funcParams = {}
-    funcParams['num_cores'] = -1
+    funcParams['num_cores'] = 1
     funcParams['randomseed'] = 0
     for key, value in kwargs.items():
         if key in funcParams:
@@ -388,14 +396,14 @@ def triplet_loss_paring(data_id, data_class, **kwargs):
     random.Random(funcParams['randomseed']).shuffle(unique_class)
     
     # Parallel pair
-    triplet_dataset = Parallel(n_jobs=funcParams['num_cores'])(delayed(do_triplet_loss_paring)(unique_class_idx, data, unique_class) for unique_class_idx in range(0, len(unique_class)))
-    triplet_dataset = pd.DataFrame(triplet_dataset)
+    # triplet_dataset = Parallel(n_jobs=funcParams['num_cores'])(delayed(do_triplet_loss_paring)(unique_class_idx, data, unique_class) for unique_class_idx in range(0, len(unique_class)))
+    # triplet_dataset = pd.DataFrame(triplet_dataset)
     
     # Looppy pair
-    # triplet_dataset = pd.DataFrame([])
-    # for unique_class_idx in range(0, len(unique_class)):
-    #     tmp_triplet_dataset = do_triplet_loss_paring(unique_class_idx, data, unique_class)
-    #     triplet_dataset = triplet_dataset.append(pd.DataFrame([tmp_triplet_dataset]), ignore_index=True)
+    triplet_dataset = pd.DataFrame([])
+    for unique_class_idx in range(0, len(unique_class)):
+        tmp_triplet_dataset = do_triplet_loss_paring(unique_class_idx, data, unique_class)
+        triplet_dataset = triplet_dataset.append(pd.DataFrame([tmp_triplet_dataset]), ignore_index=True)
         
     return triplet_dataset
 
@@ -554,13 +562,13 @@ def exact_run_result_in_directory(result_directory_path, exact_list):
         exacted_result[exact_name] = np.asarray(tmp)
     return exacted_result
 
-def term_retrieve_exact_result(exacted_data, data_names, term_finding, order_metric='ascending'):
+def exact_result_eval_retrieve(exacted_data, data_names, term_finding, metric_ordering='ascending'):
     tmp = [x[term_finding] for x in exacted_data]
     tmp = np.vstack(tmp).T
     if isinstance(tmp[0,0], np.number):
         avg_mat = np.average(tmp, axis=0)
         avg_mat = pd.DataFrame(np.average(tmp, axis=0)[np.newaxis,:], columns=data_names)
-        if order_metric == 'ascending':
+        if metric_ordering == 'ascending':
             ranked_mat = rankdata(-tmp, method='average', axis=1)
         else:
             ranked_mat = rankdata(tmp, method='average', axis=1)
@@ -574,5 +582,45 @@ def term_retrieve_exact_result(exacted_data, data_names, term_finding, order_met
     retrieved_mat = pd.DataFrame(tmp, columns=data_names)
     return retrieved_mat, avg_mat, ranked_mat, sum_ranked_mat
 
+def exact_classes_result_eval_retrieve(exacted_data, data_names, term_finding, metric_ordering='ascending', class_name_finding='label_classes'):
+    # unique class
+    unique_class = []
+    for x in exacted_data:
+        unique_class.append(x[class_name_finding])
+    unique_class = np.unique(unique_class)
+
+    # Inital
+    tmp_exacted_data = {}
+    for x in unique_class:
+        tmp_exacted_data[x] = []
+        for y in data_names:
+            tmp_exacted_data[x].append([])
+        
+    # Seperate classes
+    for x in range(0, len(exacted_data)):
+        tmp_data = exacted_data[x][term_finding]
+        tmp_class = exacted_data[x][class_name_finding]
+        for y in unique_class:
+            # tmp_exacted_data[y][term_finding].append(tmp_data[tmp_class==y])
+            tmp_exacted_data[y][x] = {term_finding:tmp_data[tmp_class==y]}
+            
+    # Exact
+    retrieved_mat = {}
+    avg_mat = {}
+    ranked_mat = {}
+    sum_ranked_mat = {}
+    for x in unique_class:
+        [retrieved_mat[x], avg_mat[x], ranked_mat[x], sum_ranked_mat[x]] = exact_result_eval_retrieve(tmp_exacted_data[x], data_names, term_finding, metric_ordering=metric_ordering)
+    
+    return retrieved_mat, avg_mat, ranked_mat, sum_ranked_mat
+
 def limit_cpu_used(cpu_used_perc=0.8):
-    return np.int(np.ceil(multiprocessing.cpu_count() * cpu_used_perc))
+    return np.int(np.round(multiprocessing.cpu_count() * cpu_used_perc))
+
+def ceil(a, precision=0):
+    return np.round((a + (0.5 * 10**(-precision))), precision)
+
+def floor(a, precision=0):
+    return np.round((a - (0.5 * 10**(-precision))), precision)
+
+
