@@ -63,7 +63,7 @@ yy = pd.read_csv(dataset_path, sep=" ", header=0).id.values
 yy = yy[np.where(np.logical_and(yy>=use_data_bet[0], yy<=use_data_bet[1]))]
 
 # Split training and test set
-[exp_test_sep_idx, exp_training_sep_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_exp_kfold, random_state=0)
+[exp_training_sep_idx, exp_test_sep_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_exp_kfold, random_state=0)
 del yy
 
 # Run experiment
@@ -77,7 +77,7 @@ for exp_numb in run_exp_kfold:
     my_data = my_data.iloc[exp_training_sep_idx[exp_numb]]
     xx = my_data.iloc[:,8:].values
     yy = my_data.id.values
-    image_id = my_data.filename.values
+    image_id = my_data.data_id.values.astype(str)
     del my_data
 
     # Run experiment each iterative
@@ -93,7 +93,7 @@ for exp_numb in run_exp_kfold:
         query_exp_name_seed = (query_exp_name + '_run_' + str(exp_numb))
         
         # Grid search
-        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, query_exp_name_seed, pos_class=pos_class, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=10)
+        [cv_results, avg_cv_results] = selm_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, xx, yy, image_id, param_grid, gridsearch_path, query_exp_name_seed, pos_class=pos_class, cv_run=cv_run, randomseed=exp_numb, useTF=training_useTF, combine_rule=combine_rule, num_cores=2)
 
         if cv_run == -1:
             # Clear and reload dataset
@@ -102,7 +102,7 @@ for exp_numb in run_exp_kfold:
             my_data = my_data[my_data['id'].between(use_data_bet[0], use_data_bet[1])]
             xx = my_data.iloc[:,8:].values
             yy = my_data.id.values
-            image_id = my_data.filename.values
+            image_id = my_data.data_id.values.astype(str)
             del my_data
             
             # Initial model
@@ -139,10 +139,10 @@ for exp_numb in run_exp_kfold:
             # Performance metrics
             performance_metric = my_util.classification_performance_metric(combined_test_yy, predictedY, label_classes)
             # Biometric metrics
-            performance_metric.update(my_util.biometric_metric(combined_test_yy, predictedScores[:,pos_class_idx], pos_class, score_order='ascending'))
+            performance_metric.update(my_util.biometric_metric(combined_test_yy, predictedScores[:,pos_class_idx], pos_class, score_order='descending'))
 
             # Save score
-            exp_result = {'distanceFunc':best_param.distanceFunc, 'kernel_param':best_param.kernel_param, 'hiddenNodePerc': best_param.hiddenNodePerc, 'regC':best_param.regC, 'combine_rule':combine_rule, 'randomseed': exp_numb, 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'selm', 'experiment_name': exp_name, 'predictedScores':predictedScores, 'predictedY':predictedY, 'test_image_id':image_id[exp_test_sep_idx[exp_numb]], 'dataset_name':dataset_name}
+            exp_result = {'distanceFunc':best_param.distanceFunc, 'kernel_param':best_param.kernel_param, 'hiddenNodePerc': best_param.hiddenNodePerc, 'regC':best_param.regC, 'combine_rule':combine_rule, 'randomseed': exp_numb, 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'selm', 'experiment_name': exp_name, 'trueY':combined_test_yy, 'predictedScores':predictedScores, 'predictedY':predictedY, 'test_image_id':combined_test_id, 'dataset_name':dataset_name}
             exp_result.update(performance_metric)
             my_util.save_numpy(exp_result, exp_result_path, exp_name_seed)
 
@@ -151,6 +151,8 @@ for exp_numb in run_exp_kfold:
             del weights, weightID, beta, label_classes, training_time
             del predictedScores, predictedY, test_time
             del performance_metric, exp_result
+            del combined_training_xx, combined_training_yy, combined_training_id
+            del combined_test_xx, combined_test_yy, combined_test_id
 
         del kfold_training_idx, kfold_test_idx
         del cv_results, avg_cv_results

@@ -70,6 +70,7 @@ class welm(object):
 
     def trainModel(self, trainingDataX, trainingDataY, weights, regC, distanceFunc, kernel_param, useTF=False):
         simKernel = my_util.calculate_kernel(trainingDataX, weights, distanceFunc, kernel_param=kernel_param, useTF=useTF)
+        del trainingDataX, weights
 
         # integer encode
         label_encoder = LabelEncoder()
@@ -88,13 +89,44 @@ class welm(object):
         penalized_array = penalized_value[integer_encoded]
         # penalized_array = np.matrix(np.tile(penalized_array, [1, 1, simKernel.shape[1]]))
 
-        H = np.matrix(np.multiply(penalized_array, simKernel))
-        del penalized_array
-        Two_H = H.T * H
+        # Multiply by using loop for large simKernel
+        avail_memory = my_util.get_available_memory() * 0.9
+        used_memory_size = my_util.getsizeof(penalized_array) * 5
+        cut_col_size = np.floor(avail_memory/used_memory_size)
+        cut_col_size = np.int(simKernel.shape[1]/np.ceil(simKernel.shape[1]/cut_col_size))
+        H = np.matrix(np.empty((penalized_array.shape[0], 0)))
+        while simKernel.shape[1] > 0:
+            if cut_col_size > simKernel.shape[1]:
+                tmp_cut_col_size = simKernel.shape[1]
+            else:
+                tmp_cut_col_size = cut_col_size
+            tmp_simKernel = simKernel[:, slice(0, tmp_cut_col_size, 1)]
+            simKernel = np.delete(simKernel, slice(0, tmp_cut_col_size, 1), 1)
+            tmp_multiply = np.multiply(penalized_array, tmp_simKernel)
+            del tmp_simKernel
+            H = np.concatenate((H, tmp_multiply), axis=1)
+            del tmp_cut_col_size, tmp_multiply
+        del simKernel, penalized_array
+        del cut_col_size, used_memory_size, avail_memory
+        
         regC_mat = np.matrix((1/regC) * np.identity(H.shape[1]))
-        inv_data = np.matrix(my_util.cal_inv_func(Two_H + regC_mat))
+        Two_H = H.T * H
+        inv_data = Two_H + regC_mat
         del Two_H, regC_mat
-        beta = inv_data * (H.T * (trainingDataY_onehot * penalized_value))
+        inv_data = my_util.cal_inv_func(inv_data)
+        inv_data = np.matrix(inv_data)
+        penalized_trainingDataY_onehot = trainingDataY_onehot * penalized_value
+        del trainingDataY_onehot, penalized_value
+        penalized_trainingDataY_onehot = H.T * penalized_trainingDataY_onehot
+        del H
+        beta = inv_data * penalized_trainingDataY_onehot
+        
+        # H = np.matrix(np.multiply(penalized_array, simKernel))
+        # del simKernel, penalized_array
+        # Two_H = H.T * H
+        # regC_mat = np.matrix((1/regC) * np.identity(H.shape[1]))
+        # inv_data = np.matrix(my_util.cal_inv_func(Two_H + regC_mat))
+        # beta = inv_data * (H.T * (trainingDataY_onehot * penalized_value))
 
         return beta, label_classes
 
@@ -324,10 +356,6 @@ class welm(object):
             [predictedScores, predictedY, test_time] = self.predict_thresholding(trainingDataX[other_param['kfold_test_data_idx']], weights, beta, tmp_distanceFunc, optimal_threshold, label_classes, other_param['pos_class'], useTF=other_param['useTF'])
 
             # Evaluate performance
-            # AUC
-            eval_scores = my_util.biometric_metric(trainingDataY[other_param['kfold_test_data_idx']], predictedScores, other_param['pos_class'], score_order='ascending')
-            # Accuracy
-            # eval_scores['accuracy'] = my_util.cal_accuracy(trainingDataY[other_param['kfold_test_data_idx']], predictedY)
             # Performance matrix
             performance_matrix = my_util.classification_performance_metric(trainingDataY[other_param['kfold_test_data_idx']], predictedY, label_classes)
             

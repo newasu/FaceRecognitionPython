@@ -1,4 +1,5 @@
-
+import sys
+import psutil
 from collections import Counter 
 from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
@@ -23,12 +24,35 @@ from pathlib import Path
 import time
 import warnings
 import random
+from tqdm import tqdm
 # Parallel
 import multiprocessing
 from joblib import Parallel, delayed
 
 from scipy.optimize import brentq
 from scipy.interpolate import interp1d
+
+def getsizeof(measured_data, unit='mb'):
+    data_size = sys.getsizeof(measured_data)
+    if unit == 'gb':
+        return ((data_size/1024)/1024)/1024
+    elif unit == 'mb':
+        return (data_size/1024)/1024
+    elif unit == 'kb':
+        return data_size/1024
+    else:
+        return data_size
+    
+def get_available_memory(unit='mb'):
+    free_mem = psutil.virtual_memory().available
+    if unit == 'gb':
+        return ((free_mem/1024)/1024)/1024
+    elif unit == 'mb':
+        return (free_mem/1024)/1024
+    elif unit == 'kb':
+        return free_mem/1024
+    else:
+        return free_mem
 
 def split_kfold_by_classes(yy, n_splits=5, random_state=0):
     # Initial
@@ -117,7 +141,7 @@ def checkClassProportions(yy):
     tmp_count['freq_perc'] = tmp_count.apply(lambda row: row.freq/tmp_size_all, axis=1)
     return tmp_count
 
-def roc_curve_descending_order(y_true, y_pred_score, pos_label):
+def roc_curve_ascending_order(y_true, y_pred_score, pos_label):
     max_dist = max(y_pred_score)
     pred_score = np.array([1-val/max_dist for val in y_pred_score])
     [fpr, tpr, thresholds] = roc_curve(y_true, pred_score, pos_label=pos_label)
@@ -142,7 +166,7 @@ def binary_classes_auc(y_true, y_pred_score, pos_label):
     # max_dist = max(y_pred_score)
     # pred = np.array([1-e/max_dist for e in y_pred_score])
     # [fpr, tpr, thresholds] = roc_curve(y_true, pred, pos_label=pos_label)
-    [fpr, tpr, thresholds] = roc_curve_descending_order(y_true, y_pred_score, pos_label)
+    [fpr, tpr, thresholds] = roc_curve_ascending_order(y_true, y_pred_score, pos_label)
     return {'auc':auc(fpr, tpr)}
 
 def classification_performance_metric(y_true, y_pred, label_name):
@@ -191,14 +215,11 @@ def biometric_metric(y_true, y_pred_score, pos_label, score_order='ascending'):
     # FNMR (False Non-Match Rate) = should accpet but reject
     # EER = Equal Error Rate = crossing point of False Matches meet False Non-Matches (FMR=FNMR)
     if score_order == 'ascending':
+        [fpr, tpr, thresholds] = roc_curve_ascending_order(y_true, y_pred_score, pos_label)
+    elif score_order == 'descending':
         [fpr, tpr, thresholds] = roc_curve(y_true, y_pred_score, pos_label=pos_label)
-    else:
-        [fpr, tpr, thresholds] = roc_curve_descending_order(y_true, y_pred_score, pos_label)
-    
     eval_score = {'auc':auc(fpr, tpr), 'eer':cal_eer(fpr, tpr, thresholds)}
-    
     eval_score.update(cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order=score_order))
-    
     return eval_score
 
 def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', threshold_step=0.0001):
@@ -212,13 +233,13 @@ def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', thres
     pos_size = np.sum(pos_idx)
     neg_size = np.sum(neg_idx)
     # Prepare variables
-    if score_order == 'descending':
+    if score_order == 'ascending':
         thresholds = np.flip(thresholds)
     fmr = np.empty(0)
     fnmr = np.empty(0)
     # Calculate
     for threshold_classifier in thresholds:
-        if score_order == 'ascending':
+        if score_order == 'descending':
             thresholded_class = y_pred_score >= threshold_classifier
         else:
             thresholded_class = y_pred_score < threshold_classifier
@@ -256,7 +277,7 @@ def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', thres
     else:
         fnmr_0d01 = fmr[tmp_idx[0]] * 100
     
-    # if score_order == 'descending':
+    # if score_order == 'ascending':
     #     thresholds = np.flip(thresholds)
     #     fmr = np.flip(fmr)
     #     fnmr = np.flip(fnmr)
@@ -289,12 +310,12 @@ def save_numpy(model, save_directory, save_name, doSilent=True):
         print()
     pass
 
-def average_gridsearch(cv_results, sortby, eval_metric=[['auc', 'descending'], ['auc_pos', 'descending'], ['f1score', 'descending']]):
+def average_gridsearch(cv_results, sortby, eval_metric=[['auc', 'ascending'], ['auc_pos', 'ascending'], ['f1score', 'ascending']]):
     metric_sortby = []
     sortby_order = []
     for tmp_eval_metric in eval_metric:
         metric_sortby.append(tmp_eval_metric[0])
-        if tmp_eval_metric[1] == 'descending':
+        if tmp_eval_metric[1] == 'ascending':
             sortby_order.append(False)
         else:
             sortby_order.append(True)
@@ -363,6 +384,7 @@ def cal_inv_func(pass_inv_data):
     return temp_inv_data
 
 def triplet_loss_paring(data_id, data_class, **kwargs):
+    print('triplet_loss_paring')
     # Assign params
     funcParams = {}
     funcParams['num_cores'] = 1
@@ -401,7 +423,7 @@ def triplet_loss_paring(data_id, data_class, **kwargs):
     
     # Looppy pair
     triplet_dataset = pd.DataFrame([])
-    for unique_class_idx in range(0, len(unique_class)):
+    for unique_class_idx in tqdm(range(0, len(unique_class))):
         tmp_triplet_dataset = do_triplet_loss_paring(unique_class_idx, data, unique_class)
         triplet_dataset = triplet_dataset.append(pd.DataFrame([tmp_triplet_dataset]), ignore_index=True)
         
@@ -431,11 +453,69 @@ def do_triplet_loss_paring(unique_class_idx, data, unique_class):
         'negative_id':negative_id, 
         'negative_class':negative_class,
         'negative_idx':negative_idx}
-    print('triplet_loss_paring: ' + str(unique_class_idx+1) + '/' + str(len(unique_class)))
+    # print('triplet_loss_paring: ' + str(unique_class_idx+1) + '/' + str(len(unique_class)))
     
     return tmp_triplet_dataset
 
 def combination_rule_paired_list(dataXX, data_id, paired_list, combine_rule='sum'):
+    print('combination_rule_paired_list')
+    # Find data index in data_id
+    tmp_anchor_idx = paired_list.anchor_id.values[:, None] == data_id
+    tmp_positive_idx = paired_list.positive_id.values[:, None] == data_id
+    tmp_negative_idx = paired_list.negative_id.values[:, None] == data_id
+    tmptmp_anchor_idx = []
+    tmptmp_positive_idx = []
+    tmptmp_negative_idx = []
+    tmptmp_positive_data_id = []
+    tmptmp_negative_data_id = []
+    for idx in range(0, tmp_anchor_idx.shape[0]):
+        tmptmp_anchor_idx.append(np.where(tmp_anchor_idx[idx,:])[0][0])
+        tmptmp_positive_idx.append(np.where(tmp_positive_idx[idx,:])[0][0])
+        tmptmp_negative_idx.append(np.where(tmp_negative_idx[idx,:])[0][0])
+        tmptmp_positive_data_id.append(paired_list.anchor_id[idx] + '-' + paired_list.positive_id[idx])
+        tmptmp_negative_data_id.append(paired_list.anchor_id[idx] + '-' + paired_list.negative_id[idx])
+    del tmp_anchor_idx, tmp_positive_idx, tmp_negative_idx
+    # retrieve data by idx
+    tmp_anchor_feature = dataXX[tmptmp_anchor_idx,:]
+    tmp_positive_feature = dataXX[tmptmp_positive_idx,:]
+    tmp_negative_feature = dataXX[tmptmp_negative_idx,:]
+    del tmptmp_anchor_idx, tmptmp_positive_idx, tmptmp_negative_idx
+    # Combine
+    if combine_rule == 'sum':
+        tmp_positive_feature = tmp_anchor_feature + tmp_positive_feature
+        tmp_negative_feature = tmp_anchor_feature + tmp_negative_feature
+    elif combine_rule == 'minus':
+        tmp_positive_feature = tmp_anchor_feature - tmp_positive_feature
+        tmp_negative_feature = tmp_anchor_feature - tmp_negative_feature
+    elif combine_rule == 'multiply':
+        tmp_positive_feature = np.multiply(tmp_anchor_feature, tmp_positive_feature)
+        tmp_negative_feature = np.multiply(tmp_anchor_feature, tmp_negative_feature)
+    elif combine_rule == 'distance':
+        tmp_positive_feature = np.absolute(tmp_anchor_feature - tmp_positive_feature)
+        tmp_negative_feature = np.absolute(tmp_anchor_feature - tmp_negative_feature)
+    elif combine_rule == 'mean':
+        tmp_positive_feature = (tmp_anchor_feature + tmp_positive_feature)/2
+        tmp_negative_feature = (tmp_anchor_feature + tmp_negative_feature)/2
+    elif combine_rule == 'concatenate':
+        tmp_positive_feature = np.concatenate((tmp_anchor_feature, tmp_positive_feature), axis=1)
+        tmp_negative_feature = np.concatenate((tmp_anchor_feature, tmp_negative_feature), axis=1)
+    del tmp_anchor_feature
+    # Arrange feature
+    combined_xx = np.concatenate((tmp_positive_feature, tmp_negative_feature), axis=1)
+    combined_xx = np.reshape(combined_xx, ((tmp_positive_feature.shape[0]*2), -1 ))
+    # Arrange class
+    combined_yy = np.concatenate((np.tile('POS', len(tmptmp_positive_data_id))[:,None], np.tile('NEG', len(tmptmp_negative_data_id))[:,None]), axis=1)
+    combined_yy = np.reshape(combined_yy, (combined_yy.size, -1 ))
+    combined_yy = np.squeeze(combined_yy)
+    # Arrange data id
+    tmptmp_positive_data_id = np.array(tmptmp_positive_data_id)
+    tmptmp_negative_data_id = np.array(tmptmp_negative_data_id)
+    combined_data_id = np.concatenate((tmptmp_positive_data_id[:,None], tmptmp_negative_data_id[:,None]), axis=1)
+    combined_data_id = np.reshape(combined_data_id, (combined_yy.size, -1 ))
+    combined_data_id = np.squeeze(combined_data_id)
+    return combined_xx, combined_yy, combined_data_id
+
+def combination_rule_paired_list_1(dataXX, data_id, paired_list, combine_rule='sum'):
     # Initial
     if combine_rule == 'concatenate':
         combined_xx = np.empty((0, (dataXX.shape[1]*2)), np.float64)
@@ -562,13 +642,13 @@ def exact_run_result_in_directory(result_directory_path, exact_list):
         exacted_result[exact_name] = np.asarray(tmp)
     return exacted_result
 
-def exact_result_eval_retrieve(exacted_data, data_names, term_finding, metric_ordering='ascending'):
+def exact_result_eval_retrieve(exacted_data, data_names, term_finding, metric_ordering='descending'):
     tmp = [x[term_finding] for x in exacted_data]
     tmp = np.vstack(tmp).T
     if isinstance(tmp[0,0], np.number):
         avg_mat = np.average(tmp, axis=0)
         avg_mat = pd.DataFrame(np.average(tmp, axis=0)[np.newaxis,:], columns=data_names)
-        if metric_ordering == 'ascending':
+        if metric_ordering == 'descending':
             ranked_mat = rankdata(-tmp, method='average', axis=1)
         else:
             ranked_mat = rankdata(tmp, method='average', axis=1)
@@ -582,7 +662,7 @@ def exact_result_eval_retrieve(exacted_data, data_names, term_finding, metric_or
     retrieved_mat = pd.DataFrame(tmp, columns=data_names)
     return retrieved_mat, avg_mat, ranked_mat, sum_ranked_mat
 
-def exact_classes_result_eval_retrieve(exacted_data, data_names, term_finding, metric_ordering='ascending', class_name_finding='label_classes'):
+def exact_classes_result_eval_retrieve(exacted_data, data_names, term_finding, metric_ordering='descending', class_name_finding='label_classes'):
     # unique class
     unique_class = []
     for x in exacted_data:

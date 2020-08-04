@@ -124,7 +124,7 @@ for exp_numb in run_exp_kfold:
             # Performance metrics
             performance_metric = my_util.classification_performance_metric(combined_test_yy, predictedY, np.array(list(unique_class.values())))
             # Biometric metrics
-            performance_metric.update(my_util.biometric_metric(combined_test_yy, predictedScores, pos_class, score_order='descending'))
+            performance_metric.update(my_util.biometric_metric(combined_test_yy, predictedScores, pos_class, score_order='ascending'))
 
             # Save score
             exp_result = {'distanceFunc':best_param.distanceFunc, 'randomseed': exp_numb, 'weightID': combined_training_id, 'label_classes': np.array(list(unique_class.values())), 'training_time': 0, 'test_time': test_time, 'algorithm': 'euclid', 'experiment_name': exp_name, 'predictedScores':predictedScores, 'predictedY':predictedY, 'test_image_id':combined_test_id, 'dataset_name':dataset_name}

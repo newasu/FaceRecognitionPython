@@ -18,12 +18,12 @@ from algorithms.paired_distance_alg import paired_distance_alg
 #############################################################################################
 
 # Experiment name
-exp_name = ('exp_4_alg_euclid')
+exp_name = ('exp_6_alg_euclid')
 
 # Parameter settings
 # Whole run round settings
-run_exp_kfold = [0, 1, 2, 3, 4] # define randomseed as list
-numb_exp_kfold = 5
+run_exp_round = [0, 1, 2, 3, 4] # define randomseed as list
+test_size = 0.5
 
 # k-fold for training
 numb_train_kfold = 5
@@ -48,25 +48,16 @@ gridsearch_path = my_util.get_current_path(additional_path=['FaceRecognitionPyth
 
 use_data_bet = [0, 100000]
 
-# Read data
-yy = pd.read_csv(dataset_path, sep=" ", header=0).id.values
-
-# # Select only some classes
-yy = yy[np.where(np.logical_and(yy>=use_data_bet[0], yy<=use_data_bet[1]))]
-
-# Split training and test set
-[exp_training_sep_idx, exp_test_sep_idx] = my_util.split_kfold_by_classes(yy, n_splits=numb_exp_kfold, random_state=0)
-del yy
-
 # Run experiment
-for exp_numb in run_exp_kfold:
+for exp_numb in run_exp_round:
     # Experiment name each seed
     exp_name_seed = (exp_name + '_run_' + str(exp_numb))
     
     # Read on training data for each fold
     my_data = pd.read_csv(dataset_path, sep=" ", header=0)
     my_data = my_data[my_data['id'].between(use_data_bet[0], use_data_bet[1])]
-    my_data = my_data.iloc[exp_training_sep_idx[exp_numb]]
+    [exp_training_sep_idx, exp_test_sep_idx] = my_util.split_data_by_classes(my_data.id.values, test_size=test_size, random_state=exp_numb)
+    my_data = my_data.iloc[exp_training_sep_idx]
     xx = my_data.iloc[:,8:].values
     yy = my_data.id.values
     image_id = my_data.data_id.values.astype(str)
@@ -99,12 +90,12 @@ for exp_numb in run_exp_kfold:
             best_param = avg_cv_results.iloc[0]
             
             # Construct triplet training dataset
-            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_training_sep_idx[exp_numb]], yy[exp_training_sep_idx[exp_numb]], randomseed=exp_numb)
-            [combined_training_xx, combined_training_yy, combined_training_id] = my_util.combination_rule_paired_list(xx[exp_training_sep_idx[exp_numb]], image_id[exp_training_sep_idx[exp_numb]], triplet_paired_list, combine_rule='concatenate')
+            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_training_sep_idx], yy[exp_training_sep_idx], randomseed=exp_numb)
+            [combined_training_xx, combined_training_yy, combined_training_id] = my_util.combination_rule_paired_list(xx[exp_training_sep_idx], image_id[exp_training_sep_idx], triplet_paired_list, combine_rule='concatenate')
             
             # Construct triplet test dataset
-            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_test_sep_idx[exp_numb]], yy[exp_test_sep_idx[exp_numb]], randomseed=exp_numb)
-            [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(xx[exp_test_sep_idx[exp_numb]], image_id[exp_test_sep_idx[exp_numb]], triplet_paired_list, combine_rule='concatenate')
+            triplet_paired_list = my_util.triplet_loss_paring(image_id[exp_test_sep_idx], yy[exp_test_sep_idx], randomseed=exp_numb)
+            [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(xx[exp_test_sep_idx], image_id[exp_test_sep_idx], triplet_paired_list, combine_rule='concatenate')
             
             # Prepare variable
             sep_idx = int(combined_training_xx.shape[1]/2)

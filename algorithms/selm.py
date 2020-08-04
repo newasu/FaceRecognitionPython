@@ -72,6 +72,8 @@ class selm(object):
             triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_test_idx[kfold_idx]], trainingDataY[kfold_test_idx[kfold_idx]], randomseed=modelParams['randomseed'])
             [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(trainingDataX[kfold_test_idx[kfold_idx]], trainingDataID[kfold_test_idx[kfold_idx]], triplet_paired_list, combine_rule=modelParams['combine_rule'])
             
+            del triplet_paired_list
+            
             tmp_training_idx = np.arange(0, combined_training_yy.size)
             tmp_test_idx = np.arange(combined_training_yy.size, (combined_training_yy.size+combined_test_yy.size))
 
@@ -86,6 +88,8 @@ class selm(object):
             #     tmp_cv_results = welm_model.do_gridsearch_parallel(gs_idx, np.concatenate((combined_training_xx, combined_test_xx)), np.concatenate((combined_training_yy, combined_test_yy)), np.concatenate((combined_training_id, combined_test_id)), param_list[gs_idx], other_param)
             #     cv_results = cv_results.append([tmp_cv_results], ignore_index=True)
             
+            del combined_training_xx, combined_training_yy, combined_training_id
+            del combined_test_xx, combined_test_yy, combined_test_id
             del tmp_cv_results
                 
         # Average cv_results
@@ -141,6 +145,8 @@ class selm(object):
             triplet_paired_list = my_util.triplet_loss_paring(trainingDataID[kfold_test_idx[kfold_idx]], trainingDataY[kfold_test_idx[kfold_idx]], randomseed=modelParams['randomseed'], num_cores=1)
             [combined_test_xx, combined_test_yy, combined_test_id] = my_util.combination_rule_paired_list(trainingDataX[kfold_test_idx[kfold_idx]], trainingDataID[kfold_test_idx[kfold_idx]], triplet_paired_list, combine_rule=modelParams['combine_rule'])
             
+            del triplet_paired_list
+            
             tmp_training_idx = np.arange(0, combined_training_yy.size)
             tmp_test_idx = np.arange(combined_training_yy.size, (combined_training_yy.size+combined_test_yy.size))
 
@@ -155,6 +161,8 @@ class selm(object):
                 tmp_cv_results = welm_model.do_gridsearch_parallel_thresholding(gs_idx, np.concatenate((combined_training_xx, combined_test_xx)), np.concatenate((combined_training_yy, combined_test_yy)), np.concatenate((combined_training_id, combined_test_id)), param_list[gs_idx], other_param)
                 cv_results = cv_results.append([tmp_cv_results], ignore_index=True)
             
+            del combined_training_xx, combined_training_yy, combined_training_id
+            del combined_test_xx, combined_test_yy, combined_test_id
             del tmp_cv_results
                 
         # Average cv_results
