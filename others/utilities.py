@@ -42,7 +42,7 @@ def getsizeof(measured_data, unit='mb'):
         return data_size/1024
     else:
         return data_size
-    
+
 def get_available_memory(unit='mb'):
     free_mem = psutil.virtual_memory().available
     if unit == 'gb':
@@ -124,7 +124,7 @@ def make_directory(directory_path, doSilent=False):
         if not doSilent:
             print('Directory already exists')
     else:
-        print('Directory was created')
+        print('Directory is created')
         Path(directory_path).mkdir(parents=True, exist_ok=True)
     pass
 
@@ -251,44 +251,69 @@ def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', thres
         fmr = np.append(fmr, temp_fmr)
         fnmr = np.append(fnmr, temp_fnmr)
     # FMR
+    # at 1%
+    tmp_idx = np.where(fmr <= 0.01)[0]
+    if tmp_idx.size == 0:
+        fmr_1 = np.nan
+    else:
+        fmr_1 = fnmr[tmp_idx[0]] * 100
     # at 0.1%
-    tmp_idx = np.where(fmr < 0.001)[0]
+    tmp_idx = np.where(fmr <= 0.001)[0]
     if tmp_idx.size == 0:
         fmr_0d1 = np.nan
     else:
         fmr_0d1 = fnmr[tmp_idx[0]] * 100
     # at 0.01%
-    tmp_idx = np.where(fmr < 0.0001)[0]
+    tmp_idx = np.where(fmr <= 0.0001)[0]
     if tmp_idx.size == 0:
         fmr_0d01 = np.nan
     else:
         fmr_0d01 = fnmr[tmp_idx[0]] * 100
+    # at 0%
+    tmp_idx = np.where(fmr <= 0)[0]
+    if tmp_idx.size == 0:
+        fmr_0 = np.nan
+    else:
+        fmr_0 = fnmr[tmp_idx[0]] * 100
+        
     # FNMR
+    # at 1%
+    tmp_idx = np.where(fnmr >= 0.01)[0]
+    if tmp_idx.size == 0:
+        fnmr_1 = np.nan
+    else:
+        fnmr_1 = fmr[tmp_idx[0]] * 100
     # at 0.1%
-    tmp_idx = np.where(fnmr > 0.001)[0]
+    tmp_idx = np.where(fnmr >= 0.001)[0]
     if tmp_idx.size == 0:
         fnmr_0d1 = np.nan
     else:
         fnmr_0d1 = fmr[tmp_idx[0]] * 100
     # at 0.01%
-    tmp_idx = np.where(fnmr > 0.0001)[0]
+    tmp_idx = np.where(fnmr >= 0.0001)[0]
     if tmp_idx.size == 0:
         fnmr_0d01 = np.nan
     else:
         fnmr_0d01 = fmr[tmp_idx[0]] * 100
+    # at 0%
+    tmp_idx = np.where(fnmr >= 0)[0]
+    if tmp_idx.size == 0:
+        fnmr_0 = np.nan
+    else:
+        fnmr_0 = fmr[tmp_idx[0]] * 100
     
-    # if score_order == 'ascending':
-    #     thresholds = np.flip(thresholds)
-    #     fmr = np.flip(fmr)
-    #     fnmr = np.flip(fnmr)
-    return {'fmr_fnmr_thresh':thresholds, 'fmr':fmr, 'fnmr':fnmr, 'fmr_0d1':fmr_0d1, 'fmr_0d01':fmr_0d01, 'fnmr_0d1':fnmr_0d1, 'fnmr_0d01':fnmr_0d01}
+    if score_order == 'ascending':
+        thresholds = np.flip(thresholds)
+        fmr = np.flip(fmr)
+        fnmr = np.flip(fnmr)
+    return {'fmr_fnmr_thresh':thresholds, 'fmr':fmr, 'fnmr':fnmr, 'fmr_1':fmr_1, 'fmr_0d1':fmr_0d1, 'fmr_0d01':fmr_0d01, 'fmr_0':fmr_0, 'fnmr_1':fnmr_1, 'fnmr_0d1':fnmr_0d1, 'fnmr_0d01':fnmr_0d01, 'fnmr_0':fnmr_0,}
 
 def cal_eer(fpr, tpr, thresholds):
     intersection_x = line_intersection(fpr, tpr, [0, 1], [1, 0])[0]
     eer = intersection_x[0]
     # eer = brentq(lambda x : 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
     # thresh = interp1d(fpr, thresholds)(eer)
-    return eer
+    return eer * 100
 
 def cal_accuracy(y_true, y_pred):
     # list([x[0] for x in y_true])

@@ -1,0 +1,47 @@
+
+eval_plot = 'eer'; % eer fmr_0d1 fmr_0d01
+data_class = 'overall';
+
+% Load data
+data = open('/Users/Wasu/Library/Mobile Documents/com~apple~CloudDocs/newasu-Mac/PhDs-Degree/New/SourceCode/FaceRecognitionPython_data_store/Result/average_exp_result_mat/exp_5/exp_5_avg_overall.mat');
+% Assign algorithm names
+algo_names = strtrim(string(data.algo_names));
+for i = 1 : numel(algo_names)
+    if strcmp(algo_names(i), 'euclid')
+        algo_names(i) = 'Euclidean';
+    elseif strcmp(algo_names(i), 'selmEuclidDistPOS')
+        algo_names(i) = 'SELM(distance)';
+    elseif strcmp(algo_names(i), 'selmEuclidMeanPOS')
+        algo_names(i) = 'SELM(mean)';
+    elseif strcmp(algo_names(i), 'selmEuclidMultiplyPOS')
+        algo_names(i) = 'SELM(multiply)';
+    elseif strcmp(algo_names(i), 'selmEuclidSumPOS')
+        algo_names(i) = 'SELM(sum)';
+    end
+end
+if strcmp(eval_plot, 'eer')
+    eval_label = 'EER';
+    my_ylim = [0.0125, 0.0155];
+elseif strcmp(eval_plot, 'fmr_0d1')
+    eval_label = 'FMR 0.1%';
+elseif strcmp(eval_plot, 'fmr_0d01')
+    eval_label = 'FMR 0.01%';
+end
+% Plot
+hB = bar(data.scores.(eval_plot).(data_class));
+xlabel('Experment')
+ylabel(eval_label)
+grid on
+grid minor
+legend(algo_names, 'Location', 'southeast')
+ylim(my_ylim)
+
+hAx = gca;              % get a variable for the current axes handle
+hT = [];                % placeholder for text object handles
+for i = 1 : length(hB)	% iterate over number of bar objects
+  hT = [hT, text(hB(i).XData+hB(i).XOffset, 
+  hB(i).YData, num2str(hB(i).YData.','%.3f'), ...
+                          'VerticalAlignment','bottom','horizontalalign','center')];
+end
+
+
