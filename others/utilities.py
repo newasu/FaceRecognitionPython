@@ -90,6 +90,43 @@ def split_data_by_classes(yy, test_size=0.3, random_state=0):
     test_idx = np.in1d(yy, test_idx).nonzero()[0]
     return training_idx, test_idx
 
+def split_data_by_id_and_classes(id_yy, class_yy, test_size=0.3, valid_size=0.0, random_state=0):
+    unique_id_yy = np.unique(id_yy)
+    unique_class_yy = np.unique(class_yy)
+    # Find number of test/valid samples
+    if isinstance(test_size, float):
+        numb_test_sample = int(np.round(len(unique_id_yy) * test_size))
+        numb_valid_sample = int(np.round(len(unique_id_yy) * valid_size))
+    else:
+        numb_test_sample = test_size
+        numb_valid_sample = valid_size
+    numb_training_sample = (len(unique_id_yy) - (numb_test_sample+numb_valid_sample))
+    # Find labels each id
+    if unique_id_yy.shape < class_yy.shape:
+        print('Finding label of id..')
+        id_class_yy = np.empty(0)
+        for id_idx in tqdm(unique_id_yy):
+            id_class_yy = np.append(id_class_yy, class_yy[np.where(id_yy == id_idx)[0][0]])
+    else:
+        id_class_yy = class_yy
+    training_idx = np.empty(0)
+    test_idx = np.empty(0)
+    valid_idx = np.empty(0)
+    numb_training_sample_each_class = int(np.round(numb_training_sample/unique_class_yy.size))
+    numb_test_sample_each_class = int(np.round(numb_test_sample/unique_class_yy.size))
+    # numb_valid_sample_each_class = int(np.round(numb_valid_sample/unique_class_yy.size))
+    for class_idx in unique_class_yy:
+        shuffled_samples = np.where(id_class_yy==class_idx)[0]
+        shuffled_samples = unique_id_yy[shuffled_samples]
+        random.Random(random_state).shuffle(shuffled_samples)
+        training_idx = np.append(training_idx, np.in1d(id_yy, shuffled_samples[0:numb_training_sample_each_class]).nonzero()[0])
+        shuffled_samples = np.delete(shuffled_samples, range(0,numb_training_sample_each_class))
+        test_idx = np.append(test_idx, np.in1d(id_yy, shuffled_samples[0:numb_test_sample_each_class]).nonzero()[0])
+        shuffled_samples = np.delete(shuffled_samples, range(0,numb_test_sample_each_class))
+        valid_idx = np.append(valid_idx, np.in1d(id_yy, shuffled_samples).nonzero()[0])
+
+    return training_idx.astype(int), test_idx.astype(int), valid_idx.astype(int)
+
 def time_counter():
     return time.perf_counter()
 
@@ -114,18 +151,24 @@ def join_path(main_path, additional_path):
         tmp_path = tmp_path + os.path.sep
     return tmp_path
 
-def get_current_path(additional_path=''):
-    tmp_path = os.path.dirname(os.getcwd())
-    tmp_path = join_path(tmp_path, additional_path)
-    return tmp_path
+def get_path(additional_path='', create_if_not_exists=False):
+    # tmp_path = os.path.dirname(os.getcwd())
+    tmp_path = os.getcwd()
+    for gp in additional_path:
+        if gp == '.':
+            tmp_path = os.path.dirname(os.getcwd())
+        else:
+            tmp_path = join_path(tmp_path, gp)
+    return tmp_path + os.sep
 
 def make_directory(directory_path, doSilent=False):
     if is_path_available(directory_path):
         if not doSilent:
             print('Directory already exists')
     else:
-        print('Directory is created')
         Path(directory_path).mkdir(parents=True, exist_ok=True)
+        if not doSilent:
+            print('Directory is created: ' + directory_path)
     pass
 
 def is_path_available(checked_path):
@@ -232,6 +275,8 @@ def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', thres
     neg_idx = ~pos_idx
     pos_size = np.sum(pos_idx)
     neg_size = np.sum(neg_idx)
+    neg_label = np.unique(y_true)
+    neg_label = neg_label[neg_label != pos_label][0]
     # Prepare variables
     if score_order == 'ascending':
         thresholds = np.flip(thresholds)
@@ -250,63 +295,40 @@ def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', thres
         # Append
         fmr = np.append(fmr, temp_fmr)
         fnmr = np.append(fnmr, temp_fnmr)
-    # FMR
-    # at 1%
-    tmp_idx = np.where(fmr <= 0.01)[0]
-    if tmp_idx.size == 0:
-        fmr_1 = np.nan
-    else:
-        fmr_1 = fnmr[tmp_idx[0]] * 100
-    # at 0.1%
-    tmp_idx = np.where(fmr <= 0.001)[0]
-    if tmp_idx.size == 0:
-        fmr_0d1 = np.nan
-    else:
-        fmr_0d1 = fnmr[tmp_idx[0]] * 100
-    # at 0.01%
-    tmp_idx = np.where(fmr <= 0.0001)[0]
-    if tmp_idx.size == 0:
-        fmr_0d01 = np.nan
-    else:
-        fmr_0d01 = fnmr[tmp_idx[0]] * 100
-    # at 0%
-    tmp_idx = np.where(fmr <= 0)[0]
-    if tmp_idx.size == 0:
-        fmr_0 = np.nan
-    else:
-        fmr_0 = fnmr[tmp_idx[0]] * 100
         
-    # FNMR
-    # at 1%
-    tmp_idx = np.where(fnmr >= 0.01)[0]
-    if tmp_idx.size == 0:
-        fnmr_1 = np.nan
-    else:
-        fnmr_1 = fmr[tmp_idx[0]] * 100
-    # at 0.1%
-    tmp_idx = np.where(fnmr >= 0.001)[0]
-    if tmp_idx.size == 0:
-        fnmr_0d1 = np.nan
-    else:
-        fnmr_0d1 = fmr[tmp_idx[0]] * 100
-    # at 0.01%
-    tmp_idx = np.where(fnmr >= 0.0001)[0]
-    if tmp_idx.size == 0:
-        fnmr_0d01 = np.nan
-    else:
-        fnmr_0d01 = fmr[tmp_idx[0]] * 100
-    # at 0%
-    tmp_idx = np.where(fnmr >= 0)[0]
-    if tmp_idx.size == 0:
-        fnmr_0 = np.nan
-    else:
-        fnmr_0 = fmr[tmp_idx[0]] * 100
+    def eval_fmr_fnmr(_fmr, _fnmr, _thres, _y_true, _y_pred_score, _thresholds, _pos_label, _neg_label, _score_order):
+        # FMR and TAR
+        tmp_idx = np.where(fmr <= _thres)[0]
+        if tmp_idx.size == 0:
+            tmp_fmr = np.nan
+            tmp_tar = np.nan
+        else:
+            tmp_fmr = _fnmr[tmp_idx[0]] * 100
+            y_pred = np.tile(_neg_label, _y_true.shape)
+            if _score_order == 'descending':
+                y_pred[_y_pred_score >= _thresholds[tmp_idx[0]]] = _pos_label
+            else:
+                y_pred[_y_pred_score < _thresholds[tmp_idx[0]]] = _pos_label
+            tmp_tar = cal_accuracy(_y_true, y_pred) * 100
+        # FNMR
+        tmp_idx = np.where(_fnmr >= _thres)[0]
+        if tmp_idx.size == 0:
+            tmp_fnmr = np.nan
+        else:
+            tmp_fnmr = _fmr[tmp_idx[0]] * 100
+        return tmp_fmr, tmp_tar, tmp_fnmr
+        
+    # FMR & TAR
+    fmr_1, tar_1, fnmr_1 = eval_fmr_fnmr(fmr, fnmr, 0.01, y_true, y_pred_score, thresholds, pos_label, neg_label, score_order)  # at 1%
+    fmr_0d1, tar_0d1, fnmr_0d1 = eval_fmr_fnmr(fmr, fnmr, 0.001, y_true, y_pred_score, thresholds, pos_label, neg_label, score_order)  # at 0.1%
+    fmr_0d01, tar_0d01, fnmr_0d01 = eval_fmr_fnmr(fmr, fnmr, 0.0001, y_true, y_pred_score, thresholds, pos_label, neg_label, score_order)  # at 0.01%
+    fmr_0, tar_0, fnmr_0 = eval_fmr_fnmr(fmr, fnmr, 0, y_true, y_pred_score, thresholds, pos_label, neg_label, score_order)  # at 0%
     
     if score_order == 'ascending':
         thresholds = np.flip(thresholds)
         fmr = np.flip(fmr)
         fnmr = np.flip(fnmr)
-    return {'fmr_fnmr_thresh':thresholds, 'fmr':fmr, 'fnmr':fnmr, 'fmr_1':fmr_1, 'fmr_0d1':fmr_0d1, 'fmr_0d01':fmr_0d01, 'fmr_0':fmr_0, 'fnmr_1':fnmr_1, 'fnmr_0d1':fnmr_0d1, 'fnmr_0d01':fnmr_0d01, 'fnmr_0':fnmr_0,}
+    return {'threshold':thresholds, 'fmr':fmr, 'fnmr':fnmr, 'fmr_1':fmr_1, 'fmr_0d1':fmr_0d1, 'fmr_0d01':fmr_0d01, 'fmr_0':fmr_0, 'fnmr_1':fnmr_1, 'fnmr_0d1':fnmr_0d1, 'fnmr_0d01':fnmr_0d01, 'fnmr_0':fnmr_0, 'tar_1':tar_1, 'tar_0d1':tar_0d1, 'tar_0d01':tar_0d01, 'tar_0':tar_0}
 
 def cal_eer(fpr, tpr, thresholds):
     intersection_x = line_intersection(fpr, tpr, [0, 1], [1, 0])[0]
@@ -409,7 +431,7 @@ def cal_inv_func(pass_inv_data):
     return temp_inv_data
 
 def triplet_loss_paring(data_id, data_class, **kwargs):
-    print('triplet_loss_paring')
+    print('triplet_paring')
     # Assign params
     funcParams = {}
     funcParams['num_cores'] = 1
@@ -497,8 +519,8 @@ def combination_rule_paired_list(dataXX, data_id, paired_list, combine_rule='sum
         tmptmp_anchor_idx.append(np.where(tmp_anchor_idx[idx,:])[0][0])
         tmptmp_positive_idx.append(np.where(tmp_positive_idx[idx,:])[0][0])
         tmptmp_negative_idx.append(np.where(tmp_negative_idx[idx,:])[0][0])
-        tmptmp_positive_data_id.append(paired_list.anchor_id[idx] + '-' + paired_list.positive_id[idx])
-        tmptmp_negative_data_id.append(paired_list.anchor_id[idx] + '-' + paired_list.negative_id[idx])
+        tmptmp_positive_data_id.append(paired_list.anchor_id[idx].astype(str) + '-' + paired_list.positive_id[idx].astype(str))
+        tmptmp_negative_data_id.append(paired_list.anchor_id[idx].astype(str) + '-' + paired_list.negative_id[idx].astype(str))
     del tmp_anchor_idx, tmp_positive_idx, tmp_negative_idx
     # retrieve data by idx
     tmp_anchor_feature = dataXX[tmptmp_anchor_idx,:]

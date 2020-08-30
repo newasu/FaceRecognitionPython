@@ -4,7 +4,7 @@
 import sys
 import pathlib
 my_current_path = pathlib.Path(__file__).parent.absolute()
-my_root_path = my_current_path.parent
+my_root_path = my_current_path.parent.parent
 sys.path.insert(0, str(my_root_path))
 
 # Import lib
