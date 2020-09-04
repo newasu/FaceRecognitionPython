@@ -15,7 +15,7 @@ import tensorflow_addons as tfa
 # Import my own lib
 import others.utilities as my_util
 
-gpu_id = 1
+gpu_id = 0
 os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 # Clear GPU cache
 tf.keras.backend.clear_session()

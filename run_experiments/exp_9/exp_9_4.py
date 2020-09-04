@@ -25,7 +25,7 @@ import others.utilities as my_util
 
 #############################################################################################
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-gpu_id = 0
+gpu_id = 1
 os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 # Clear GPU cache
 tf.keras.backend.clear_session()
@@ -38,11 +38,11 @@ dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
 exp_name = exp_name + dataset_exacted
 
 train_class = ['female', 'male']
-train_class = train_class[0]
+train_class = train_class[1]
 exp_name = exp_name + train_class
 
 img_per_class = 3
-numb_class_each = 3
+numb_class_each = 10
 
 batch_size = img_per_class * numb_class_each
 epoch = 80
@@ -127,7 +127,7 @@ def generator(x_data, y_data):
         # print(x_data[tmp_sample_idx].shape, y_data[tmp_sample_idx].shape)
         yield x_data[tmp_sample_idx], y_data[tmp_sample_idx]
 
-# generator(x_training, y_training, 2)
+# generator(x_training, y_training)
 
 # Initial triplets network
 proposed_model = tf.keras.models.Sequential()
