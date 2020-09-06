@@ -76,7 +76,7 @@ exacted_data = np.concatenate((my_data.values[:,0:8], exacted_data), axis=1)
 exacted_data = pd.DataFrame(exacted_data, columns=my_data_columns)
 
 # Write
-exacted_data.to_csv((dataset_path + 'Diveface_' + dataset_exacted + '_nonorm_' + exp + exp_name_suffix + '.txt'), header=True, index=False, sep=' ', mode='a')
+exacted_data.to_csv((dataset_path + 'Diveface_' + dataset_exacted + '_nonorm_' + exp + exp_name_suffix + '_run_' + str(random_seed) + '.txt'), header=True, index=False, sep=' ', mode='a')
 
 print('Finished')
 

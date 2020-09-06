@@ -42,13 +42,13 @@ train_class = train_class[1]
 exp_name = exp_name + train_class
 
 img_per_class = 3
-numb_class_each = 3
+numb_class_each = 15
 
 batch_size = img_per_class * numb_class_each
 epoch = 80
 learning_rate = 0.0001
 
-training_augment = 50
+training_augment = 30
 valid_augment = 1
 
 random_seed = 0

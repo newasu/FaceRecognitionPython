@@ -505,7 +505,7 @@ def do_triplet_loss_paring(unique_class_idx, data, unique_class):
     return tmp_triplet_dataset
 
 def combination_rule_paired_list(dataXX, data_id, paired_list, combine_rule='sum'):
-    print('combination_rule_paired_list')
+    # print('combination_rule_paired_list')
     # Find data index in data_id
     tmp_anchor_idx = paired_list.anchor_id.values[:, None] == data_id
     tmp_positive_idx = paired_list.positive_id.values[:, None] == data_id
