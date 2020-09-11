@@ -43,13 +43,13 @@ train_class = train_class[4]
 exp_name = exp_name + train_class
 
 img_per_class = 3
-numb_class_each = 100
+numb_class_each = 120
 
 batch_size = img_per_class * numb_class_each
-epoch = 30
+epoch = 50
 learning_rate = 0.0001
 
-training_augment = 10
+training_augment = 1
 valid_augment = 1
 
 random_seed = 0
@@ -101,7 +101,7 @@ y_valid = data_id_valid[y_valid]
 del my_data, tmp_label, new_label
 
 step_per_epoch = np.round(y_training.size/batch_size).astype(int) * training_augment
-validation_step_per_epoch = np.round(y_valid.size/batch_size).astype(int) * valid_augment
+validation_step_per_epoch = np.round((y_valid.size/img_per_class)/4).astype(int) * valid_augment
 def generator(x_data, y_data):
     ind = np.argsort(y_data)
     y_data = y_data[ind]

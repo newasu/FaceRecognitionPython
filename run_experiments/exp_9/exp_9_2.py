@@ -38,18 +38,19 @@ dataset_name = 'Diveface'
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
 exp_name = exp_name + dataset_exacted
 
+# train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
 train_class = ['female', 'male']
 train_class = train_class[1]
 exp_name = exp_name + train_class
 
 img_per_class = 3
-numb_class_each = 3
+numb_class_each = 120 # 400 2400
 
 batch_size = img_per_class * numb_class_each
-epoch = 80
+epoch = 50
 learning_rate = 0.0001
 
-training_augment = 40
+training_augment = 1
 valid_augment = 1
 
 random_seed = 0
@@ -101,7 +102,7 @@ y_valid = data_id_valid[y_valid]
 del my_data, tmp_label, new_label
 
 step_per_epoch = np.round(y_training.size/batch_size).astype(int) * training_augment
-validation_step_per_epoch = np.round(y_valid.size/batch_size).astype(int) * valid_augment
+validation_step_per_epoch = np.round((y_valid.size/img_per_class)/12).astype(int) * valid_augment
 def generator(x_data, y_data):
     ind = np.argsort(y_data)
     y_data = y_data[ind]
@@ -128,7 +129,7 @@ def generator(x_data, y_data):
         # print(x_data[tmp_sample_idx].shape, y_data[tmp_sample_idx].shape)
         yield x_data[tmp_sample_idx], y_data[tmp_sample_idx]
 
-# generator(x_training, y_training)
+# generator(x_training, y_training, 2)
 
 # Initial triplets network
 proposed_model = tf.keras.models.Sequential()
