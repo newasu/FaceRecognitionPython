@@ -25,9 +25,15 @@ import others.utilities as my_util
 
 #############################################################################################
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+gpu_id = 0
+os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+# Clear GPU cache
+tf.keras.backend.clear_session()
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
 
-exp_name = 'exp_7_alg_tl'
+exp = 'exp_7'
+exp_name = exp + '_alg_tl'
 dataset_name = 'Diveface'
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
 exp_name = exp_name + dataset_exacted
@@ -37,20 +43,20 @@ train_class = train_class[1]
 exp_name = exp_name + train_class
 
 img_per_class = 3
-numb_class_each = 50
+numb_class_each = 100
 
 batch_size = img_per_class * numb_class_each
-epoch = 100
-learning_rate=0.0001
+epoch = 30
+learning_rate = 0.0001
 
-training_augment = 300
-valid_augment = 300
+training_augment = 10
+valid_augment = 1
 
 random_seed = 0
 test_size = 0.3
 valid_size = 0.1
 
-exp_name = exp_name + '_' + str(numb_class_each) + '_' + str(training_augment)
+exp_name = exp_name + '_b_' + str(batch_size) + '_e_' + str(epoch) + '_a_' + str(training_augment)
 
 #############################################################################################
 
@@ -58,9 +64,9 @@ exp_name = exp_name + '_' + str(numb_class_each) + '_' + str(training_augment)
 # Dataset path
 dataset_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
 # Result path
-exp_result_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', exp_name])
+exp_result_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', exp, exp_name])
 # Grid search path
-gridsearch_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', (exp_name + '_run_' + str(random_seed))])
+gridsearch_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', exp, (exp_name + '_run_' + str(random_seed))])
 # Make directory
 my_util.make_directory(exp_result_path)
 my_util.make_directory(gridsearch_path)
@@ -74,9 +80,6 @@ my_data = pd.read_csv((dataset_path + dataset_name + '_' + dataset_exacted + '_n
 # Assign data
 # Label
 tmp_label = (my_data['gender'] + '-' + my_data['ethnicity']).values
-# new_label = np.zeros(tmp_label.shape)
-# new_label[tmp_label == train_class] = 1
-# new_label = tf.keras.utils.to_categorical(new_label, num_classes=2)
 new_label = tmp_label
 # Training data
 data_id_training = my_data.id.iloc[training_sep_idx].values
@@ -96,14 +99,6 @@ y_valid = y_valid == train_class
 x_valid = x_valid[y_valid,:]
 y_valid = data_id_valid[y_valid]
 del my_data, tmp_label, new_label
-
-# def triplet_loss_func(y_true, y_pred, alpha=0.3):
-#     anchor, positive, negative = y_pred[0], y_pred[1], y_pred[2]
-#     positive_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, positive)), -1)
-#     negative_dist = tf.reduce_sum(tf.square(tf.subtract(anchor,negative)), -1)
-#     loss_1 = tf.add(tf.subtract(positive_dist, negative_dist), alpha)
-#     loss = tf.reduce_sum(tf.maximum(loss_1, 0.0))
-#     return loss
 
 step_per_epoch = np.round(y_training.size/batch_size).astype(int) * training_augment
 validation_step_per_epoch = np.round(y_valid.size/batch_size).astype(int) * valid_augment
@@ -133,35 +128,15 @@ def generator(x_data, y_data):
         # print(x_data[tmp_sample_idx].shape, y_data[tmp_sample_idx].shape)
         yield x_data[tmp_sample_idx], y_data[tmp_sample_idx]
 
-# def generator(x_data, y_data):
-#     ind = np.argsort(y_data)
-#     y_data = y_data[ind]
-#     x_data = x_data[ind]
-#     del ind
-#     for epoch_idx in range(0, epoch):
-#         shuffled_y = np.unique(y_data)
-#         random.Random(random_seed+epoch_idx).shuffle(shuffled_y)
-#         sample_idx = np.empty(0)
-#         for y_idx in shuffled_y:
-#             tmp_sample_idx = np.in1d(y_data, y_idx).nonzero()[0]
-#             tmp_sample_idx = np.append(tmp_sample_idx, np.tile(tmp_sample_idx[-1], (img_per_class-len(tmp_sample_idx))))
-#             sample_idx = np.append(sample_idx, tmp_sample_idx)
-#         sample_idx = sample_idx.astype(int)
-#         # print(sample_idx.shape)
-#         for batch_idx in range(0, y_data.size, step_per_epoch):
-#             # print(x_data[batch_idx:(batch_idx+step_per_epoch), :].shape)
-#             yield x_data[batch_idx:(batch_idx+step_per_epoch), :], y_data[batch_idx:(batch_idx+step_per_epoch)]
-
-# generator(x_training, y_training)
+# generator(x_training, y_training, 2)
 
 # Initial triplets network
 proposed_model = tf.keras.models.Sequential()
 proposed_model.add(tf.keras.layers.Dense(1024, input_dim=x_training.shape[1], activation='linear'))
-# proposed_model.add(tf.keras.layers.Dense(512, input_dim=x_training.shape[1], activation=None))
 # proposed_model.add(tf.keras.layers.Dropout(0.1))
 # proposed_model.add(tf.keras.layers.Dense(512, activation=None))
 proposed_model.add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
-proposed_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss=tfa.losses.TripletSemiHardLoss())
+proposed_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate==learning_rate), loss=tfa.losses.TripletSemiHardLoss())
 
 # Create a callback
 checkpoint_path = gridsearch_path + 'cp-{epoch:04d}.ckpt'
@@ -170,8 +145,6 @@ proposed_model.save_weights(checkpoint_path.format(epoch=0))
 
 # Train the network
 tf.random.set_seed(random_seed)
-# history = proposed_model.fit(x=x_training, y=y_training, validation_data=(x_valid, y_valid), epochs=10, batch_size=32, callbacks=my_callbacks)
-# history = proposed_model.fit(generator(x_training, y_training), steps_per_epoch=step_per_epoch, validation_data=generator(x_valid, y_valid), validation_steps=validation_step_per_epoch, epochs=epoch, callbacks=my_callbacks)
 history = proposed_model.fit(generator(x_training, y_training), steps_per_epoch=step_per_epoch, validation_data=generator(x_valid, y_valid), validation_steps=validation_step_per_epoch, epochs=epoch, callbacks=my_callbacks)
 
 # Save model
@@ -180,7 +153,6 @@ history.history['epoch'] = history.epoch
 pickle_history = open((exp_result_path + exp_name + '_run_' + str(random_seed) + '.pickle'), 'wb')
 pickle.dump(history.history, pickle_history)
 pickle_history.close()
-
 
 
 # Evaluate the network

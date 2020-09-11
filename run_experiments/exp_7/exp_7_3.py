@@ -25,31 +25,31 @@ import others.utilities as my_util
 
 #############################################################################################
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-gpu_id = 1
+gpu_id = 0
 os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 # Clear GPU cache
 tf.keras.backend.clear_session()
 gpus = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(gpus[0], True)
 
-exp = 'exp_9'
+exp = 'exp_7'
 exp_name = exp + '_alg_tl'
 dataset_name = 'Diveface'
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
 exp_name = exp_name + dataset_exacted
 
-train_class = ['female', 'male']
-train_class = train_class[0]
+train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
+train_class = train_class[2]
 exp_name = exp_name + train_class
 
 img_per_class = 3
-numb_class_each = 30
+numb_class_each = 100
 
 batch_size = img_per_class * numb_class_each
-epoch = 80
+epoch = 30
 learning_rate = 0.0001
 
-training_augment = 30
+training_augment = 10
 valid_augment = 1
 
 random_seed = 0
@@ -79,7 +79,7 @@ my_data = pd.read_csv((dataset_path + dataset_name + '_' + dataset_exacted + '_n
 [training_sep_idx, test_sep_idx, valid_sep_idx] = my_util.split_data_by_id_and_classes(my_data.id.values, (my_data['gender'] + '-' + my_data['ethnicity']).values, test_size=test_size, valid_size=valid_size, random_state=random_seed)
 # Assign data
 # Label
-tmp_label = my_data['gender'].values
+tmp_label = (my_data['gender'] + '-' + my_data['ethnicity']).values
 new_label = tmp_label
 # Training data
 data_id_training = my_data.id.iloc[training_sep_idx].values

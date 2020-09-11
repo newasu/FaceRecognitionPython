@@ -34,7 +34,7 @@ exp = 'exp_9'
 exp_name = exp + '_alg_tl' # exp_7_alg_tl exp_9_alg_tl
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
 exp_name = exp_name + dataset_exacted
-exp_name_suffix = '_b_9_e_80_a_30'
+exp_name_suffix = '_b_60_e_80_a_50' # 9 15 30 45 60 90
 
 train_class = ['female', 'male']
 # train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']

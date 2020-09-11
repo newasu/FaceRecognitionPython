@@ -22,7 +22,7 @@ from algorithms.paired_distance_alg import paired_distance_alg
 
 #############################################################################################
 
-gpu_id = 0
+gpu_id = 1
 os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 # Clear GPU cache
 tf.keras.backend.clear_session()
@@ -30,17 +30,17 @@ gpus = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(gpus[0], True)
 
 dataset_name = 'Diveface'
-exp = 'exp_9'
+exp = 'exp_7'
 exp_name = exp + '_alg_tl' # exp_7_alg_tl exp_9_alg_tl
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
 exp_name = exp_name + dataset_exacted
-exp_name_suffix = '_b_90_e_80_a_50' # 9 15 30 45 60 90
+exp_name_suffix = '_b_300_e_30_a_10' # 30 60 90 120 150 180 210 240 270 300
 
-train_class = ['female', 'male']
-# train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
+# train_class = ['female', 'male']
+train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
 eval_set = ['test'] # training valid test
 
-epoch = range(0,81)
+epoch = range(0,31)
 
 random_seed = 0
 test_size = 0.3
@@ -130,16 +130,6 @@ for eval_set_idx in eval_set:
     for race_class_idx in race_class:
         tmp_idx = y_race_data[data_sep_idx[eval_set_idx]] == race_class_idx
         race_triplet_paired_list[eval_set_idx][race_class_idx] = my_util.triplet_loss_paring(id_data[data_sep_idx[eval_set_idx]][tmp_idx], class_data[data_sep_idx[eval_set_idx]][tmp_idx], randomseed=random_seed)
-        
-# Gender
-# gender_triplet_paired_list = {}
-# for eval_set_idx in eval_set:
-#     gender_triplet_paired_list[eval_set_idx] = {}
-#     for gender_class_idx in gender_class:
-#         gender_triplet_paired_list[eval_set_idx][gender_class_idx] = pd.DataFrame()
-#         tmp_gender_in_race_class = (gender_in_race_class.str[0] == gender_class_idx).values
-#         for race_idx in race_class[tmp_gender_in_race_class]:
-#             gender_triplet_paired_list[eval_set_idx][gender_class_idx] = gender_triplet_paired_list[eval_set_idx][gender_class_idx].append(race_triplet_paired_list[eval_set_idx][race_idx])
 
 # Initial triplets network model
 model_path = {}

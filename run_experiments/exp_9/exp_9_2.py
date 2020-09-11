@@ -32,7 +32,8 @@ tf.keras.backend.clear_session()
 gpus = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(gpus[0], True)
 
-exp_name = 'exp_9_alg_tl'
+exp = 'exp_9'
+exp_name = exp + '_alg_tl'
 dataset_name = 'Diveface'
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
 exp_name = exp_name + dataset_exacted
@@ -42,13 +43,13 @@ train_class = train_class[1]
 exp_name = exp_name + train_class
 
 img_per_class = 3
-numb_class_each = 15
+numb_class_each = 3
 
 batch_size = img_per_class * numb_class_each
 epoch = 80
 learning_rate = 0.0001
 
-training_augment = 30
+training_augment = 40
 valid_augment = 1
 
 random_seed = 0
@@ -63,9 +64,9 @@ exp_name = exp_name + '_b_' + str(batch_size) + '_e_' + str(epoch) + '_a_' + str
 # Dataset path
 dataset_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
 # Result path
-exp_result_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', exp_name])
+exp_result_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', exp, exp_name])
 # Grid search path
-gridsearch_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', (exp_name + '_run_' + str(random_seed))])
+gridsearch_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', exp, (exp_name + '_run_' + str(random_seed))])
 # Make directory
 my_util.make_directory(exp_result_path)
 my_util.make_directory(gridsearch_path)
