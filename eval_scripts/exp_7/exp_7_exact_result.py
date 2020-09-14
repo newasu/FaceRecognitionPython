@@ -17,7 +17,7 @@ import others.utilities as my_util
 
 #############################################################################################
 
-exp = 'exp_7'
+exp = 'exp_7' # exp_7 exp_9
 exp_name = exp + '_alg_tl'
 dataset_exacted = 'resnet50'
 exp_name = exp_name + dataset_exacted
@@ -128,15 +128,9 @@ for exact_eval_set_idx in exact_eval_set:
             scores[exact_eval_set_idx]['tar_0d1'] = np.vstack((scores[exact_eval_set_idx]['tar_0d1'], tmp_tar_0d1))
             scores[exact_eval_set_idx]['tar_1'] = np.vstack((scores[exact_eval_set_idx]['tar_1'], tmp_tar_1))
 
-# scores['auc'].max()
-# scores['eer'].min()
-# scores['tar_1'].max()
-# scores['tar_0d1'].max()
-# scores['tar_0d01'].max()
-# scores['tar_1'].max()
-
 # Plot
-for exact_eval_set_idx in exact_eval_set:
+plot_exact_eval_set = ['valid', 'test']
+for exact_eval_set_idx in plot_exact_eval_set:
     plotLines('auc', exact_eval_set_idx, scores, exp_name_suffix, 'AUC')
     plotLines('eer', exact_eval_set_idx, scores, exp_name_suffix, 'EER')
     plotLines('tar_0d01', exact_eval_set_idx, scores, exp_name_suffix, 'TAR 0.1')
