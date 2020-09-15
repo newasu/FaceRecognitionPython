@@ -26,7 +26,7 @@ exp_name_suffix = ['b_180_e_50_a_1', 'b_210_e_50_a_1', 'b_240_e_50_a_1', 'b_270_
 # exp_name_suffix = ['b_30_e_50_a_1', 'b_60_e_50_a_1', 'b_90_e_50_a_1', 'b_120_e_50_a_1', 'b_150_e_50_a_1', 'b_180_e_50_a_1', 'b_210_e_50_a_1', 'b_240_e_50_a_1', 'b_270_e_50_a_1', 'b_300_e_50_a_1', 'b_330_e_50_a_1', 'b_360_e_50_a_1']
 
 exact_eval_set = ['training', 'valid', 'test']
-eval_class = 'female-black' # overall female male female-asian female-black female-caucasian male-asian male-black male-caucasian
+eval_class = 'female' # overall female male female-asian female-black female-caucasian male-asian male-black male-caucasian
 
 random_seed = 0
 
