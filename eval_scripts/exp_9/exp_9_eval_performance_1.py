@@ -146,7 +146,7 @@ for train_class_idx in train_class:
     proposed_model[train_class_idx].add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
     proposed_model[train_class_idx].compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001), loss=tfa.losses.TripletSemiHardLoss())
 
-# Evaludate
+# Evaluate
 for eval_set_idx in eval_set:
     print('eval set: ' + eval_set_idx)
     performance_metric = {}

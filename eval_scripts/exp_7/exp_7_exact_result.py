@@ -26,7 +26,7 @@ exp_name_suffix = ['b_180_e_50_a_1', 'b_210_e_50_a_1', 'b_240_e_50_a_1', 'b_270_
 # exp_name_suffix = ['b_30_e_50_a_1', 'b_60_e_50_a_1', 'b_90_e_50_a_1', 'b_120_e_50_a_1', 'b_150_e_50_a_1', 'b_180_e_50_a_1', 'b_210_e_50_a_1', 'b_240_e_50_a_1', 'b_270_e_50_a_1', 'b_300_e_50_a_1', 'b_330_e_50_a_1', 'b_360_e_50_a_1']
 
 exact_eval_set = ['training', 'valid', 'test']
-eval_class = 'female' # overall female male female-asian female-black female-caucasian male-asian male-black male-caucasian
+eval_class = 'male-asian' # overall female male female-asian female-black female-caucasian male-asian male-black male-caucasian
 
 random_seed = 0
 
@@ -64,7 +64,8 @@ def plotLines(_metric, _exact_eval_set, _scores, _legends, _name):
         best_score = np.amax(_scores[_exact_eval_set][_metric])
         txt_dist = 5
     best_coor = np.where(best_score == _scores[_exact_eval_set][_metric])
-    plt.annotate(epoch_numb[best_coor[1]][0], (epoch_numb[best_coor[1]][0],best_score), textcoords="offset points", color=colors[best_coor[0][0]], xytext=(0,txt_dist), ha='center', va='center')
+    for best_coor_idx in range(0,best_coor[0].shape[0]):
+        plt.annotate(epoch_numb[best_coor[1]][best_coor_idx], (epoch_numb[best_coor[1]][best_coor_idx],best_score), textcoords="offset points", color=colors[best_coor[0][best_coor_idx]], xytext=(0,txt_dist), ha='center', va='center')
     plt.xlabel('EPOCH')
     # plt.ylabel('')
     plt.title(_name)

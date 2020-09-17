@@ -156,7 +156,7 @@ def get_path(additional_path='', create_if_not_exists=False):
     tmp_path = os.getcwd()
     for gp in additional_path:
         if gp == '.':
-            tmp_path = os.path.dirname(os.getcwd())
+            tmp_path = os.path.dirname(tmp_path)
         else:
             tmp_path = join_path(tmp_path, gp)
     return tmp_path + os.sep
@@ -253,7 +253,7 @@ def classification_performance_metric(y_true, y_pred, label_name):
     
     return eval_score
 
-def biometric_metric(y_true, y_pred_score, pos_label, score_order='ascending'):
+def biometric_metric(y_true, y_pred_score, pos_label, score_order='ascending', threshold_step=0.0001):
     # FMR (False Match Rate) = should reject but accpet
     # FNMR (False Non-Match Rate) = should accpet but reject
     # EER = Equal Error Rate = crossing point of False Matches meet False Non-Matches (FMR=FNMR)
@@ -262,7 +262,7 @@ def biometric_metric(y_true, y_pred_score, pos_label, score_order='ascending'):
     elif score_order == 'descending':
         [fpr, tpr, thresholds] = roc_curve(y_true, y_pred_score, pos_label=pos_label)
     eval_score = {'auc':auc(fpr, tpr), 'eer':cal_eer(fpr, tpr, thresholds)}
-    eval_score.update(cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order=score_order))
+    eval_score.update(cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order=score_order, threshold_step=threshold_step))
     return eval_score
 
 def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', threshold_step=0.0001):
