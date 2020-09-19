@@ -20,6 +20,10 @@ import others.utilities as my_util
 #          'model': ['b_210_e_50_a_1', 'b_210_e_50_a_1', 'b_270_e_50_a_1', 'b_270_e_50_a_1', 'b_330_e_50_a_1', 'b_240_e_50_a_1'], 
 #          'epoch': [29, 12, 15, 25, 37, 18], 
 #          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+# param = {'exp':'exp_8', 
+#          'model': ['b_270_e_50_a_1', 'b_270_e_50_a_1', 'b_270_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1'], 
+#          'epoch': [48, 48, 48, 49, 49, 49], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 # param = {'exp':'exp_9', 
 #          'model': ['b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1'], 
 #          'epoch': [49, 49, 49, 38, 38, 38], 
@@ -29,6 +33,10 @@ import others.utilities as my_util
 # param = {'exp':'exp_7', 
 #          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_240_e_50_a_1', 'b_360_e_50_a_1', 'b_270_e_50_a_1', 'b_240_e_50_a_1'], 
 #          'epoch': [36, 32, 42, 25, 35, 28], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+# param = {'exp':'exp_8', 
+#          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1'], 
+#          'epoch': [36, 36, 36, 17, 17, 17], 
 #          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 # param = {'exp':'exp_9', 
 #          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_360_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1'], 
@@ -40,15 +48,23 @@ import others.utilities as my_util
 #          'model': ['b_270_e_50_a_1', 'b_240_e_50_a_1', 'b_240_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_240_e_50_a_1'], 
 #          'epoch': [43, 31, 30, 41, 26, 28], 
 #          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+# param = {'exp':'exp_8', 
+#          'model': ['b_360_e_50_a_1', 'b_360_e_50_a_1', 'b_360_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1'], 
+#          'epoch': [50, 50, 50, 37, 37, 37], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 # param = {'exp':'exp_9', 
 #          'model': ['b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1'], 
 #          'epoch': [17, 17, 17, 18, 18, 18], 
 #          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 
 # TAR 0.01 Valid
-param = {'exp':'exp_7', 
-         'model': ['b_270_e_50_a_1', 'b_240_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_360_e_50_a_1', 'b_240_e_50_a_1'], 
-         'epoch': [43, 31, 35, 41, 29, 28], 
+# param = {'exp':'exp_7', 
+#          'model': ['b_270_e_50_a_1', 'b_240_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_360_e_50_a_1', 'b_240_e_50_a_1'], 
+#          'epoch': [43, 31, 35, 41, 29, 28], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+param = {'exp':'exp_8', 
+         'model': ['b_210_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1', 'b_300_e_50_a_1', 'b_300_e_50_a_1', 'b_300_e_50_a_1'], 
+         'epoch': [21, 21, 21, 39, 39, 39], 
          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 # param = {'exp':'exp_9', 
 #          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1'], 

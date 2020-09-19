@@ -178,8 +178,13 @@ class welm(object):
             [predictedScores, predictedY, test_time] = self.predict(trainingDataX[other_param['kfold_test_data_idx']], weights, beta, tmp_distanceFunc, tmp_kernel_param, label_classes, useTF=other_param['useTF'])
 
             # Evaluate performance
-            # AUC
-            eval_scores = my_util.cal_auc(trainingDataY[other_param['kfold_test_data_idx']], predictedScores, label_classes)
+            eval_scores = {}
+            # eval_scores['eer'] = np.nan
+            if np.all(np.unique(trainingDataY) == ['NEG', 'POS']):
+                pos_class_idx = label_classes==other_param['pos_class']
+                eval_scores.update(my_util.biometric_metric(trainingDataY[other_param['kfold_test_data_idx']], np.ravel(predictedScores[:,pos_class_idx]), other_param['pos_class'], score_order='descending'))
+                del eval_scores['threshold'], eval_scores['fmr'], eval_scores['fnmr']
+            eval_scores.update(my_util.cal_auc(trainingDataY[other_param['kfold_test_data_idx']], predictedScores, label_classes))
             # Performance matrix
             performance_matrix = my_util.classification_performance_metric(trainingDataY[other_param['kfold_test_data_idx']], predictedY, label_classes)
             
@@ -202,6 +207,8 @@ class welm(object):
         'auc': my_model['auc_mean'],
         'auc_pos': my_model['auc'][my_model['label_classes']==my_model['pos_class']][0],
         'f1score': my_model['f1score_mean']}
+        if 'eer' in my_model:
+            tmp_cv_results.update({'eer': my_model['eer'], 'tar_1': my_model['tar_1'], 'tar_0d1': my_model['tar_0d1'], 'tar_0d01': my_model['tar_0d01'], 'tar_0': my_model['tar_0']})
 
         print('WELM-Fold: ' + str(other_param['kfold_idx']) + ', gs_idx: ' + str(gs_idx+1) + '/' +  other_param['total_run'])
 

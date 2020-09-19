@@ -44,7 +44,7 @@ train_class = train_class[1]
 exp_name = exp_name + train_class
 
 img_per_class = 3
-numb_class_each = 70 # 400 2400
+numb_class_each = 60 # 400 2400
 
 batch_size = img_per_class * numb_class_each
 epoch = 50

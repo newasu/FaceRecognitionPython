@@ -24,9 +24,16 @@ tf.config.experimental.set_memory_growth(gpus[0], True)
 
 #############################################################################################
 
+filename_comment = 'eer'
+
+# param = {'exp':'exp_7', 
+#          'model': ['b_270_e_50_a_1', 'b_240_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_360_e_50_a_1', 'b_240_e_50_a_1'], 
+#          'epoch': [43, 31, 35, 41, 29, 28], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+
 param = {'exp':'exp_7', 
-         'model': ['b_270_e_50_a_1', 'b_240_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_360_e_50_a_1', 'b_240_e_50_a_1'], 
-         'epoch': [43, 31, 35, 41, 29, 28], 
+         'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_240_e_50_a_1', 'b_360_e_50_a_1', 'b_270_e_50_a_1', 'b_240_e_50_a_1'], 
+         'epoch': [36, 32, 42, 25, 35, 28], 
          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 
 dataset_name = 'Diveface'
@@ -93,7 +100,7 @@ exacted_data = np.concatenate((info_data, exacted_data), axis=1)
 exacted_data = pd.DataFrame(exacted_data, columns=my_data_columns)
 
 # Write
-exacted_data.to_csv((dataset_path + 'Diveface_' + dataset_exacted + '_' + exp + '_run_' + str(random_seed) + '.txt'), header=True, index=False, sep=' ', mode='a')
+exacted_data.to_csv((dataset_path + 'Diveface_' + dataset_exacted + '_' + exp + '_run_' + str(random_seed) + '(' + filename_comment + ').txt'), header=True, index=False, sep=' ', mode='a')
 
 print('Finished')
 

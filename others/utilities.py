@@ -357,26 +357,37 @@ def save_numpy(model, save_directory, save_name, doSilent=True):
         print()
     pass
 
-def average_gridsearch(cv_results, sortby, eval_metric=[['auc', 'ascending'], ['auc_pos', 'ascending'], ['f1score', 'ascending']]):
+def average_gridsearch(cv_results, sortby):
+    metric_order = np.array([['auc_pos', 'ascending'], ['auc', 'ascending'], ['f1score', 'ascending'], ['eer', 'descending']])
+    sortby.append('fold')
+    eval_metric_all = cv_results.columns.values
+    for sortby_val in sortby:
+        eval_metric_all = np.delete(eval_metric_all, np.where(eval_metric_all == sortby_val)[0][0])
     metric_sortby = []
     sortby_order = []
-    for tmp_eval_metric in eval_metric:
-        metric_sortby.append(tmp_eval_metric[0])
-        if tmp_eval_metric[1] == 'ascending':
-            sortby_order.append(False)
+    for eval_metric_all_val in eval_metric_all:
+        metric_sortby.append(eval_metric_all_val)
+        find_idx = np.where(eval_metric_all_val == metric_order)[0]
+        if find_idx.size > 0:
+            if metric_order[find_idx][0][1] == 'ascending':
+                tmp_sort_order = False
+            else:
+                tmp_sort_order = True
         else:
-            sortby_order.append(True)
+            tmp_sort_order = False
+        sortby_order.append(tmp_sort_order)
     
     numb_fold = np.unique(cv_results.fold).size
     # Sort each fold in table
-    cv_results = cv_results.sort_values(by=(sortby + ['fold']))
+    cv_results = cv_results.sort_values(by=sortby)
+    sortby.remove('fold')
     # Average
     avg_cv_results = cv_results[sortby].iloc[::numb_fold].values
     avg_result = {}
-    for ag_idx in eval_metric:
-        avg_result[ag_idx[0]] = np.cumsum(cv_results[ag_idx[0]].values, 0)[numb_fold-1::numb_fold]/float(numb_fold)
-        avg_result[ag_idx[0]][1:] = avg_result[ag_idx[0]][1:] - avg_result[ag_idx[0]][:-1]
-        avg_cv_results = np.concatenate((avg_cv_results, avg_result[ag_idx[0]][:, None]), axis=1)
+    for ag_idx in eval_metric_all:
+        avg_result[ag_idx] = np.cumsum(cv_results[ag_idx].values, 0)[numb_fold-1::numb_fold]/float(numb_fold)
+        avg_result[ag_idx][1:] = avg_result[ag_idx][1:] - avg_result[ag_idx][:-1]
+        avg_cv_results = np.concatenate((avg_cv_results, avg_result[ag_idx][:, None]), axis=1)
     # Bind into dataframe
     avg_cv_results = pd.DataFrame(data=avg_cv_results, columns=cv_results.columns[1:].values)
     avg_cv_results = avg_cv_results.sort_values(by=metric_sortby, ascending=sortby_order)
