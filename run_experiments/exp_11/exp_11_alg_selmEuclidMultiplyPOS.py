@@ -20,7 +20,7 @@ exp = 'exp_11'
 exp_name = exp + '_alg_selmEuclidMultiplyPOS'
 query_exp_name = exp + '_alg_selmEuclidMultiplyPOS'
 
-train_class_idx = 4
+train_class_idx = 5
 train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
 train_class = train_class[train_class_idx]
 exp_name = exp_name + '_' + train_class
@@ -31,7 +31,7 @@ dataset_exacted = 'resnet50'
 dataset_exacted_model = ['exp_7', 'eer']
 
 # Parameter settings
-num_used_cores = 3
+num_used_cores = 10
 
 # Whole run round settings
 run_exp_round = [0] # define randomseed as list
@@ -191,6 +191,8 @@ for exp_numb in run_exp_round:
             print('exp_name: ' + exp_name_seed)
             print('auc: ' + str(exp_result['auc']))
             print('eer: ' + str(exp_result['eer']))
+            print('accuracy: ' + str(exp_result['accuracy']))
+            print('tar_1: ' + str(exp_result['tar_1']))
             print('tar_0d1: ' + str(exp_result['tar_0d1']))
             print('tar_0d01: ' + str(exp_result['tar_0d01']))
 

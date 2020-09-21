@@ -8,10 +8,10 @@ import cv2
 import os
 import pickle
 import random
+from tqdm import tqdm
 
-# import tensorflow as tf
-# import tensorflow_addons as tfa
-# import tensorflow_datasets as tfds
+import tensorflow as tf
+import tensorflow_addons as tfa
 
 from sklearn import preprocessing
 
@@ -21,11 +21,30 @@ from algorithms.paired_distance_alg import paired_distance_alg
 
 #############################################################################################
 
+# param = {'exp_name': 'baseline',
+#          'model': ['baseline', 'baseline', 'baseline', 'baseline', 'baseline', 'baseline'],  
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+
+param = {'exp':'exp_7', 'exp_name': 'racebaseline',
+         'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_240_e_50_a_1', 'b_360_e_50_a_1', 'b_270_e_50_a_1', 'b_240_e_50_a_1'], 
+         'epoch': [36, 32, 42, 25, 35, 28], 
+         'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian'], 'class-model': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+
+# param = {'exp':'exp_8', 'exp_name': 'racebaseline',
+#          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1'], 
+#          'epoch': [36, 36, 36, 17, 17, 17], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian'], 'class-model': ['female', 'female', 'female', 'male', 'male', 'male']}
+
+# param = {'exp':'exp_9', 'exp_name': 'racebaseline',
+#          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_360_e_50_a_1', 'b_210_e_50_a_1', 'b_210_e_50_a_1'], 
+#          'epoch': [16, 16, 16, 17, 17, 17], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+
 exp = 'exp_7'
-exp_name = exp + '_baseline'
+exp_name = exp + '_' + param['exp_name'] + '_' + param['exp'] # _baseline _racebaseline
 dataset_name = 'Diveface'
-dataset_exacted = 'vgg16' # vgg16 resnet50 retinaface
-exp_name = exp_name + dataset_exacted
+dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
+exp_name = exp_name + '_' + dataset_exacted
 
 eval_set = ['test'] # training valid test
 
@@ -87,9 +106,11 @@ def prepare_data_from_class(_class_idx, _eval_id_data, _eval_x_data, _eval_y_dat
 
 def eval_perf(_combined_id, _combined_x, _combined_y):
     _feature_size = np.int((_combined_x.shape[1]/2))
-    [predictedScores, predictedY, test_time] = distance_model.predict(_combined_x[:,0:_feature_size], _combined_x[:,_feature_size:], _combined_y, unique_class, 1, distance_metric='euclidean')
+    _model_threshold = distance_model.train(_combined_x[:,0:_feature_size], _combined_x[:,_feature_size:], _combined_y, unique_class)
+    predictedScores, predictedY, _ = distance_model.predict(_combined_x[:,0:_feature_size], _combined_x[:,_feature_size:], _combined_y, unique_class, _model_threshold[0], distance_metric='euclidean')
     _tmp_performance_metric = my_util.biometric_metric(_combined_y, predictedScores, 'POS', score_order='ascending', threshold_step=0.01)
     del _tmp_performance_metric['threshold'], _tmp_performance_metric['fmr'], _tmp_performance_metric['fnmr']
+    _tmp_performance_metric.update(my_util.classification_performance_metric(_combined_y, predictedY, np.array(['NEG', 'POS'])))
     return _tmp_performance_metric
 
 #############################################################################################
@@ -98,6 +119,36 @@ gender_class = np.array(['female', 'male'])
 race_class = np.array(['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian'])
 distance_model = paired_distance_alg()
 unique_class = {'pos':'POS', 'neg':'NEG'}
+# Feature size
+if dataset_exacted == 'vgg16':
+    feature_size = 4096
+elif dataset_exacted == 'resnet50':
+    feature_size = 2048
+proposed_model_feature_size = 1024
+
+# Extract features
+if param['exp_name'] == 'baseline':
+    exacted_data = np.empty((y_race_data.size, feature_size))
+else:
+    exacted_data = np.empty((y_race_data.size, proposed_model_feature_size))
+for class_idx, class_val in enumerate(param['class']):
+    tmp_idx = np.where(y_race_data == class_val)[0]
+    feature_embedding = x_data[tmp_idx]
+    if param['model'][class_idx] != 'baseline':
+        # Load model
+        model_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', param['exp'], param['exp'] + '_alg_tl' + dataset_exacted + param['class-model'][class_idx] + '_' + param['model'][class_idx] + '_run_' + str(random_seed)])
+        proposed_model = tf.keras.models.Sequential()
+        proposed_model.add(tf.keras.layers.Dense(proposed_model_feature_size, input_dim=feature_size, activation='linear'))
+        proposed_model.add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
+        proposed_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001), loss=tfa.losses.TripletSemiHardLoss())
+        proposed_model.load_weights(model_path + 'cp-' + str(param['epoch'][class_idx]).zfill(4) + '.ckpt')
+        # Extract features
+        feature_embedding = proposed_model.predict(feature_embedding)
+        del model_path, proposed_model
+    exacted_data[tmp_idx] = feature_embedding
+    del tmp_idx, feature_embedding
+x_data = exacted_data
+del exacted_data
 
 # Pair triplet
 # Race
@@ -109,7 +160,7 @@ for eval_set_idx in eval_set:
         race_triplet_paired_list[eval_set_idx][race_class_idx] = my_util.triplet_loss_paring(id_data[data_sep_idx[eval_set_idx]][tmp_idx], class_data[data_sep_idx[eval_set_idx]][tmp_idx], randomseed=random_seed)
         del tmp_idx
 
-# Evaludate
+# Evaluate
 for eval_set_idx in eval_set:
     print('eval set: ' + eval_set_idx)
     performance_metric = {}
@@ -118,7 +169,7 @@ for eval_set_idx in eval_set:
     eval_id_data = {}
     eval_x_data = {}
     eval_y_data = {}
-    for race_class_idx in race_class:
+    for race_class_idx in tqdm(race_class):
         # Prepare data each class
         tmp_class_data, tmp_id_data, tmp_x_data, tmp_y_data = assign_data(data_sep_idx[eval_set_idx], race_class_idx)
         # Combination data
@@ -134,7 +185,7 @@ for eval_set_idx in eval_set:
     del combined_id, combined_x, combined_y
     del eval_id_data, eval_x_data, eval_y_data
 
-    # # Save
+    # Save
     pickle_write = open((summary_path + exp_name + '_run_' + str(random_seed) + '(' + eval_set_idx + ').pickle'), 'wb')
     pickle.dump(performance_metric, pickle_write)
     pickle_write.close()

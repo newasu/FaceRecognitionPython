@@ -192,6 +192,7 @@ class welm(object):
             my_model = {'distanceFunc':tmp_distanceFunc, 'kernel_param':tmp_kernel_param, 'hiddenNodePerc': tmp_hiddenNodePerc, 'regC':tmp_regC, 'randomseed': other_param['randomseed'], 'weightID': weightID, 'beta': beta, 'label_classes': label_classes, 'training_time': training_time, 'test_time': test_time, 'algorithm': 'welm', 'experiment_name': other_param['exp_name'], 'pos_class': other_param['pos_class']}
             my_model.update(eval_scores)
             my_model.update({'f1score_mean': performance_matrix['f1score_mean']})
+            my_model.update({'accuracy': performance_matrix['accuracy']})
             # Remove model to reduce file size
             del my_model['weightID'], my_model['beta']
 
@@ -206,7 +207,7 @@ class welm(object):
         'regC': my_model['regC'], 
         'auc': my_model['auc_mean'],
         'auc_pos': my_model['auc'][my_model['label_classes']==my_model['pos_class']][0],
-        'f1score': my_model['f1score_mean']}
+        'f1score': my_model['f1score_mean'], 'accuracy': my_model['accuracy']}
         if 'eer' in my_model:
             tmp_cv_results.update({'eer': my_model['eer'], 'tar_1': my_model['tar_1'], 'tar_0d1': my_model['tar_0d1'], 'tar_0d01': my_model['tar_0d01'], 'tar_0': my_model['tar_0']})
 

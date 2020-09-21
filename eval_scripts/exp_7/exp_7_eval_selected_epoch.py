@@ -151,7 +151,7 @@ print('Model: ')
 print([i + ', ' + str(j) for i, j in zip(param['model'], param['epoch'])] )
 print()
 
-# Selected scores
+# Select scores
 selected_scores = {}
 for exact_eval_set_val in exact_eval_set:
     selected_scores[exact_eval_set_val] = {}
