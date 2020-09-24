@@ -34,7 +34,7 @@ dataset_exacted_model = ['exp_7', 'eer']
 num_used_cores = 9
 
 # Whole run round settings
-run_exp_round = [0] # define randomseed as list
+run_exp_round = [0, 1, 2, 3, 4] # define randomseed as list
 test_size = 0.3
 valid_size = 0.1
 
@@ -72,7 +72,7 @@ for exp_numb in run_exp_round:
     exp_name_seed = (exp_name + '_run_' + str(exp_numb))
     
     # Load data
-    my_data = pd.read_csv((dataset_path + dataset_name + '_' + dataset_exacted + '_' + dataset_exacted_model[0] + '_run_' + str(exp_numb) + '(' + dataset_exacted_model[1] + ').txt'), sep=" ", header=0)
+    my_data = pd.read_csv((dataset_path + dataset_name + '_' + dataset_exacted + '_' + dataset_exacted_model[0] + '_run_' + str(0) + '(' + dataset_exacted_model[1] + ').txt'), sep=" ", header=0)
     # Separate data
     my_data_race = (my_data['gender'] + '-' + my_data['ethnicity']).values
     [training_sep_idx, test_sep_idx, valid_sep_idx] = my_util.split_data_by_id_and_classes(my_data.id.values, my_data_race, test_size=test_size, valid_size=valid_size, random_state=exp_numb)
@@ -108,8 +108,18 @@ for exp_numb in run_exp_round:
         selm_model = selm()
         
         # Generate k-fold index for training
-        kfold_training_idx = [np.arange(0, training_sep_idx.size)]
-        kfold_test_idx = [np.arange(0, valid_sep_idx.size) + training_sep_idx.size]
+        # kfold_training_idx = [np.arange(0, training_sep_idx.size)]
+        # kfold_test_idx = [np.arange(0, valid_sep_idx.size) + training_sep_idx.size]
+        [_, tmp_kfold_training_idx] = my_util.split_kfold_by_classes(y_class_training, n_splits=10, random_state=exp_numb)
+        [_, tmp_kfold_test_idx] = my_util.split_kfold_by_classes(y_class_valid, n_splits=10, random_state=exp_numb)
+        kfold_training_idx = np.empty(0).astype(int)
+        kfold_test_idx = np.empty(0).astype(int)
+        for idx in range(0,len(tmp_kfold_training_idx)):
+            kfold_training_idx = np.append(kfold_training_idx, tmp_kfold_training_idx[idx])
+            kfold_test_idx = np.append(kfold_test_idx, tmp_kfold_test_idx[idx] + training_sep_idx.size)
+        del tmp_kfold_training_idx, tmp_kfold_test_idx
+        kfold_training_idx = [kfold_training_idx]
+        kfold_test_idx = [kfold_test_idx]
         
         query_exp_name_seed = (query_exp_name + '_run_' + str(exp_numb))
         

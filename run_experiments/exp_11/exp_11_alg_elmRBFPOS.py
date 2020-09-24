@@ -17,10 +17,10 @@ from algorithms.welm import welm
 
 # Experiment name
 exp = 'exp_11'
-exp_name = exp + '_alg_selmEuclidMeanPOS'
-query_exp_name = exp + '_alg_selmEuclidMeanPOS'
+exp_name = exp + '_alg_elmRBFPOS'
+query_exp_name = exp + '_alg_elmRBFPOS'
 
-train_class_idx = 5
+train_class_idx = 2
 train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
 train_class = train_class[train_class_idx]
 exp_name = exp_name + '_' + train_class
@@ -31,10 +31,10 @@ dataset_exacted = 'resnet50'
 dataset_exacted_model = ['exp_7', 'eer']
 
 # Parameter settings
-num_used_cores = 10
+num_used_cores = 6
 
 # Whole run round settings
-run_exp_round = [0, 1, 2, 3, 4] # define randomseed as list
+run_exp_round = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] # define randomseed as list
 test_size = 0.3
 valid_size = 0.1
 
@@ -43,11 +43,11 @@ numb_train_kfold = 1
 cv_run = -1 # -1 = run all fold, else, run only define
 
 # Algorithm parameters
-param_grid = {'distanceFunc':'euclidean', 
-              'kernel_param':0, 
+param_grid = {'distanceFunc':'rbf', 
+              'kernel_param':10**np.arange(-3, 3, dtype='float'), 
               'hiddenNodePerc':(np.arange(1, 11)/10), 
-              'regC':10**np.arange(-10, 11, dtype='float')}
-combine_rule = 'mean'
+              'regC':10**np.arange(-3, 3, dtype='float')}
+combine_rule = 'concatenate'
 
 pos_class = 'POS'
 

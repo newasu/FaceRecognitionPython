@@ -428,7 +428,11 @@ def calculate_kernel(m1, m2, kernelFunc, kernel_param=None, useTF=False):
         elif kernelFunc == 'cosine':
             kernel_mat = pairwise.cosine_similarity(m1, m2)
         elif kernelFunc == 'rbf':
-            kernel_mat = pairwise.rbf_kernel(m1, m2, gamma=kernel_param)
+            if kernel_param == 0:
+                gamma = None
+            else:
+                gamma = kernel_param
+            kernel_mat = pairwise.rbf_kernel(m1, m2, gamma=gamma)
         elif kernelFunc == 'sigmoid':
             kernel_mat = pairwise.sigmoid_kernel(m1, m2, gamma=kernel_param, coef0=kernel_param)
         elif kernelFunc == 'polynomial':
