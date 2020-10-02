@@ -35,7 +35,7 @@ dataset_exacted_model = ['exp_7', 'eer']
 num_used_cores = 9
 
 # Whole run round settings
-run_exp_round = [0, 1, 2, 3, 4] # define randomseed as list
+run_exp_round = [5, 6, 7, 8, 9] # define randomseed as list
 test_size = 0.3
 valid_size = 0.1
 

@@ -20,7 +20,7 @@ exp = 'exp_11'
 exp_name = exp + '_alg_RaceEuclidean' # _alg_BaselineEuclidean _alg_RaceEuclidean _alg_GenderEuclidean
 query_exp_name = exp_name
 
-train_class_idx = 2
+train_class_idx = 0
 train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
 train_class = train_class[train_class_idx]
 exp_name = exp_name + '_' + train_class
@@ -31,7 +31,7 @@ dataset_exacted = 'resnet50'
 dataset_exacted_model = ['exp_7', 'eer'] # exp_7 exp_8
 
 # Whole run round settings
-run_exp_round = [5, 6, 7, 8, 9] # define randomseed as list
+run_exp_round = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] # define randomseed as list
 test_size = 0.3
 valid_size = 0.1
 

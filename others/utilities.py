@@ -309,7 +309,9 @@ def cal_fmr_fnmr(y_true, y_pred_score, pos_label, score_order='ascending', thres
                 y_pred[_y_pred_score >= _thresholds[tmp_idx[0]]] = _pos_label
             else:
                 y_pred[_y_pred_score < _thresholds[tmp_idx[0]]] = _pos_label
-            tmp_tar = cal_accuracy(_y_true, y_pred) * 100
+            p_idx = _y_true == _pos_label
+            tmp_tar = np.sum(_y_true[p_idx] == y_pred[p_idx]) / np.sum(p_idx)
+            # tmp_tar = cal_accuracy(_y_true, y_pred) * 100
         # FNMR
         tmp_idx = np.where(_fnmr >= _thres)[0]
         if tmp_idx.size == 0:
