@@ -143,7 +143,7 @@ proposed_model.add(tf.keras.layers.Dense(1024, input_dim=x_training.shape[1], ac
 # proposed_model.add(tf.keras.layers.Dropout(0.1))
 # proposed_model.add(tf.keras.layers.Dense(512, activation=None))
 proposed_model.add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
-proposed_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate==learning_rate), loss=tfa.losses.TripletSemiHardLoss())
+proposed_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss=tfa.losses.TripletSemiHardLoss())
 
 # Create a callback
 checkpoint_path = gridsearch_path + 'cp-{epoch:04d}.ckpt'

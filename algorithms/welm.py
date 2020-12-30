@@ -206,8 +206,9 @@ class welm(object):
         'hiddenNodePerc': my_model['hiddenNodePerc'], 
         'regC': my_model['regC'], 
         'auc': my_model['auc_mean'],
-        'auc_pos': my_model['auc'][my_model['label_classes']==my_model['pos_class']][0],
         'f1score': my_model['f1score_mean'], 'accuracy': my_model['accuracy']}
+        if my_model['pos_class'] in my_model['label_classes']:
+            tmp_cv_results['auc_pos'] = my_model['auc'][my_model['label_classes']==my_model['pos_class']][0]
         if 'eer' in my_model:
             tmp_cv_results.update({'eer': my_model['eer'], 'tar_1': my_model['tar_1'], 'tar_0d1': my_model['tar_0d1'], 'tar_0d01': my_model['tar_0d01'], 'tar_0': my_model['tar_0']})
 
@@ -224,6 +225,7 @@ class welm(object):
         # modelParams['cv'] = len(kfold_training_idx)
         modelParams['cv_run'] = -1 # -1 = run all seed, else, run only defined seed
         modelParams['randomseed'] = 0
+        modelParams['pos_class'] = 'POS'
         for key, value in kwargs.items():
             if key in modelParams:
                 modelParams[key] = value
@@ -244,17 +246,17 @@ class welm(object):
         my_save_directory = exp_path + exp_name
 
         # Combine params all of possible combination
-        param_list = np.array(np.meshgrid(param_grid['distanceFunc'], param_grid['hiddenNodePerc'], param_grid['regC'])).T
+        param_list = np.array(np.meshgrid(param_grid['distanceFunc'], param_grid['kernel_param'], param_grid['hiddenNodePerc'], param_grid['regC'])).T
         param_list = param_list.reshape(-1, param_list.shape[-1])
 
         # Init result
-        cv_results = pd.DataFrame(columns=['fold', 'distanceFunc', 'hiddenNodePerc', 'regC', 'auc', 'f1score']) # define column names
+        cv_results = pd.DataFrame(columns=['fold', 'distanceFunc', 'kernel_param', 'hiddenNodePerc', 'regC', 'auc', 'f1score']) # define column names
 
         # Run k-fold
         total_run = str(param_list.shape[0])
         for kfold_idx in cv_run:
 
-            other_param = {'kfold_idx':kfold_idx, 'randomseed':modelParams['randomseed'], 'exp_path':exp_path,'exp_name':exp_name, 'kfold_training_data_idx':kfold_training_idx[kfold_idx], 'kfold_test_data_idx':kfold_test_idx[kfold_idx], 'my_save_directory':my_save_directory, 'total_run':total_run, 'useTF':modelParams['useTF']}
+            other_param = {'kfold_idx':kfold_idx, 'randomseed':modelParams['randomseed'], 'exp_path':exp_path,'exp_name':exp_name, 'kfold_training_data_idx':kfold_training_idx[kfold_idx], 'kfold_test_data_idx':kfold_test_idx[kfold_idx], 'my_save_directory':my_save_directory, 'total_run':total_run, 'useTF':modelParams['useTF'], 'pos_class':modelParams['pos_class']}
             
             # Run grid search parallel
             tmp_cv_results = Parallel(n_jobs=modelParams['num_cores'])(delayed(self.do_gridsearch_parallel)(gs_idx, trainingDataX, trainingDataY, trainingDataID, param_list[gs_idx], other_param) for gs_idx in range(0, param_list.shape[0]))
@@ -265,10 +267,10 @@ class welm(object):
             #     tmp_cv_results = self.do_gridsearch_parallel(gs_idx, trainingDataX, trainingDataY, trainingDataID, param_list[gs_idx], other_param)
             #     cv_results = cv_results.append([tmp_cv_results], ignore_index=True)
             
-            # del tmp_cv_results
+            del tmp_cv_results
                 
         # Average cv_results
-        [cv_results, avg_cv_results] = my_util.average_gridsearch(cv_results, ['distanceFunc', 'hiddenNodePerc', 'regC'])
+        [cv_results, avg_cv_results] = my_util.average_gridsearch(cv_results, ['distanceFunc', 'kernel_param', 'hiddenNodePerc', 'regC'])
 
         return cv_results, avg_cv_results
     

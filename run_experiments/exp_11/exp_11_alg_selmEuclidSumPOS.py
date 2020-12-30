@@ -164,12 +164,7 @@ for exp_numb in run_exp_round:
                 # Test model
                 [predictedScores, predictedY, test_time] = welm_model.predict(combined_test_xx, weights, beta, best_param.distanceFunc, best_param.kernel_param, label_classes, useTF=False)
 
-                # Eval performance
-                pos_class_idx = label_classes == pos_class
-                # Performance metrics
-                performance_metric = my_util.classification_performance_metric(combined_test_yy, predictedY, label_classes)
-                # Biometric metrics
-                performance_metric.update(my_util.biometric_metric(combined_test_yy, np.ravel(predictedScores[:,pos_class_idx]), pos_class, score_order='descending'))
+                
                 
                 # Store
                 bucket[best_param_list_idx] = {'weightID':weightID, 'beta':beta, 'label_classes':label_classes, 'training_time':training_time, 'predictedScores':predictedScores, 'predictedY':predictedY, 'test_time':test_time, 'performance_metric': performance_metric}
