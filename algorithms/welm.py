@@ -180,7 +180,8 @@ class welm(object):
             # Evaluate performance
             eval_scores = {}
             # eval_scores['eer'] = np.nan
-            if np.all(np.unique(trainingDataY) == ['NEG', 'POS']):
+            # if np.all(np.unique(trainingDataY) == ['NEG', 'POS']):
+            if np.unique(trainingDataY).size == 2 and 'POS' in np.unique(trainingDataY) and 'NEG' in np.unique(trainingDataY):
                 pos_class_idx = label_classes==other_param['pos_class']
                 eval_scores.update(my_util.biometric_metric(trainingDataY[other_param['kfold_test_data_idx']], np.ravel(predictedScores[:,pos_class_idx]), other_param['pos_class'], score_order='descending'))
                 del eval_scores['threshold'], eval_scores['fmr'], eval_scores['fnmr']

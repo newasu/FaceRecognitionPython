@@ -19,7 +19,7 @@ from algorithms.welm import welm
 exp = 'exp_12'
 exp_name = exp + '_varynode_welm'
 
-train_class_idx = 0
+train_class_idx = 5
 train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
 train_class = train_class[train_class_idx]
 exp_name = exp_name + '_' + train_class
