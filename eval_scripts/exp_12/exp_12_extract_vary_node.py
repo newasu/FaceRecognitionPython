@@ -8,6 +8,7 @@ sys.path.append("./././")
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt 
+import matplotlib.ticker as plticker
 
 # Import my own lib
 import others.utilities as my_util
@@ -83,16 +84,26 @@ my_std['selm'][57] = my_std['selm'][56]
 plt.rcParams['font.serif'] = 'Times New Roman'
 fig = plt.figure() 
 ax = plt.subplot(111)
-ax.errorbar(vary_hiddenNode*100, my_mean['welm'], yerr=my_std['welm'], label='WELM', color='black', elinewidth=0.5, ls='dotted')
+els = ax.errorbar(vary_hiddenNode*100, my_mean['welm'], yerr=my_std['welm'], label='WELM', color='black', elinewidth=0.5, lw=0.8, ls=':')
+els[-1][0].set_linestyle('--')
 ax.errorbar(vary_hiddenNode*100, my_mean['selm'], yerr=my_std['selm'], label='SELM', color='black', elinewidth=0.5, lw=0.8)
 # Set limit
 ax.set_xlim([-0.5, 100.5])
 ax.set_ylim([49.5, 100])
+# Set axis label
+ax.set_xlabel('Hidden node used (%)', fontsize=14, fontname='Times New Roman')
+ax.set_ylabel('Accuracy (%)', fontsize=14, fontname='Times New Roman')
 # Set legend
 my_legend = ax.legend(prop={'family':'Times New Roman', 'size':12}, loc='lower right', fancybox=True, shadow=True)
 # Grid
+# loc = plticker.MultipleLocator(base=10)
+# ax.xaxis.set_minor_locator(loc)
+# ax.yaxis.set_minor_locator(loc)
 ax.set_axisbelow(True)
-ax.grid(linestyle=':', color='gray')
+ax.grid(b=True, which='major', axis='both', linestyle=':', color='gray', alpha=1)
+ax.minorticks_on()
+ax.grid(b=True, which='minor', axis='both', linestyle='-', color='#999999', alpha=0.2)
+# Save
 fig.savefig('varynode.png')
 fig.savefig('varynode.pdf')
 
