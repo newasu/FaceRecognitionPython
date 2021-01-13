@@ -43,9 +43,6 @@ dataset_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecogni
 exp_result_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', exp, exp_name])
 # Model path
 model_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', model_exp, model_exp_name])
-# Make directory
-# my_util.make_directory(exp_result_path)
-# my_util.make_directory(gridsearch_path)
 
 #############################################################################################
 
@@ -193,8 +190,11 @@ for exp_numb in run_exp_round:
 
     print('Finished ' + exp_name_seed)
     
-    del performance_metric
+    # del performance_metric
     # del predictedScores, predictedY
     # del exp_result
+
+print(tmp_accuracy_all)
+print(np.mean(tmp_accuracy_all))
 
 print()
