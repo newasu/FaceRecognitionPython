@@ -15,7 +15,7 @@ import tensorflow_addons as tfa
 # Import my own lib
 import others.utilities as my_util
 
-gpu_id = 1
+gpu_id = 0
 os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 # Clear GPU cache
 tf.keras.backend.clear_session()
@@ -24,22 +24,23 @@ tf.config.experimental.set_memory_growth(gpus[0], True)
 
 #############################################################################################
 
-filename_comment = 'eer'
-
+# filename_comment = 'tar0d01'
 # param = {'exp':'exp_7', 
 #          'model': ['b_270_e_50_a_1', 'b_240_e_50_a_1', 'b_330_e_50_a_1', 'b_330_e_50_a_1', 'b_360_e_50_a_1', 'b_240_e_50_a_1'], 
 #          'epoch': [43, 31, 35, 41, 29, 28], 
 #          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 
-# param = {'exp':'exp_7', 
-#          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_240_e_50_a_1', 'b_360_e_50_a_1', 'b_270_e_50_a_1', 'b_240_e_50_a_1'], 
-#          'epoch': [36, 32, 42, 25, 35, 28], 
-#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+filename_comment = 'eer'
+param = {'exp':'exp_7', 
+         'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_240_e_50_a_1', 'b_360_e_50_a_1', 'b_270_e_50_a_1', 'b_240_e_50_a_1'], 
+         'epoch': [36, 32, 42, 25, 35, 28], 
+         'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 
-param = {'exp':'exp_8', 
-         'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1'], 
-         'epoch': [36, 36, 36, 17, 17, 17], 
-         'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian'], 'class-model': ['female', 'female', 'female', 'male', 'male', 'male']}
+# filename_comment = 'eer'
+# param = {'exp':'exp_8', 
+#          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1'], 
+#          'epoch': [36, 36, 36, 17, 17, 17], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian'], 'class-model': ['female', 'female', 'female', 'male', 'male', 'male']}
 
 dataset_name = 'Diveface'
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
@@ -53,7 +54,7 @@ random_seed = 0
 
 # Path
 # Dataset path
-dataset_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
+dataset_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
 
 #############################################################################################
 
@@ -86,7 +87,10 @@ del my_data
 model_path = {}
 proposed_model = {}
 for class_idx, class_val in enumerate(param['class']):
-    model_path[class_val] = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', exp, exp_name + param['class-model'][class_idx] + '_' + param['model'][class_idx] + '_run_' + str(random_seed)])
+    if param['exp'] == 'exp_7':
+        model_path[class_val] = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', exp, exp_name + param['class'][class_idx] + '_' + param['model'][class_idx] + '_run_' + str(random_seed)])
+    else:
+        model_path[class_val] = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', exp, exp_name + param['class-model'][class_idx] + '_' + param['model'][class_idx] + '_run_' + str(random_seed)])
     proposed_model[class_val] = tf.keras.models.Sequential()
     proposed_model[class_val].add(tf.keras.layers.Dense(proposed_model_feature_size, input_dim=feature_size, activation='linear'))
     proposed_model[class_val].add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
@@ -105,7 +109,7 @@ exacted_data = np.concatenate((info_data, exacted_data), axis=1)
 exacted_data = pd.DataFrame(exacted_data, columns=my_data_columns)
 
 # Write
-exacted_data.to_csv((dataset_path + 'Diveface_' + dataset_exacted + '_' + exp + '_run_' + str(random_seed) + '(' + filename_comment + ').txt'), header=True, index=False, sep=' ', mode='a')
+# exacted_data.to_csv((dataset_path + 'Diveface_' + dataset_exacted + '_' + exp + '_run_' + str(random_seed) + '(' + filename_comment + ').txt'), header=True, index=False, sep=' ', mode='a')
 
 print('Finished')
 

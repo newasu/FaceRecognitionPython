@@ -127,5 +127,3 @@ my_data = pd.DataFrame(my_data, columns=my_data_columns)
 my_data.to_csv('DevTest_cleaned.txt', header=True, index=False, sep=' ')
 
 print()
-
-# my_data = pd.read_csv((dataset_path + 'DevTest_cleaned.txt'), sep=" ", header=0)

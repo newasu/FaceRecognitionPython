@@ -17,18 +17,18 @@ from algorithms.paired_distance_alg import paired_distance_alg
 
 # Experiment name
 exp = 'exp_11'
-exp_name = exp + '_alg_GenderEuclidean' # _alg_BaselineEuclidean _alg_RaceEuclidean _alg_GenderEuclidean
+exp_name = exp + '_alg_RaceEuclidean' # _alg_BaselineEuclidean _alg_RaceEuclidean _alg_GenderEuclidean
 query_exp_name = exp_name
 
-train_class_idx = [3, 4, 5] # [0, 1, 2, 3, 4, 5] [0, 1, 2] [3, 4, 5]
-train_class = np.array(['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian'])
-train_class = list(train_class[train_class_idx])
-train_class_name = '-'
-exp_name = exp_name + '_' + train_class_name.join(train_class)
-# query_exp_name = query_exp_name + '_' + train_class_name.join(train_class)
+train_class_idx = 0
+train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
+train_class = train_class[train_class_idx]
+exp_name = exp_name + '_' + train_class
+query_exp_name = query_exp_name + '_' + train_class
 
 dataset_name = 'Diveface'
 dataset_exacted = 'resnet50'
+dataset_exacted_model = ['exp_7', 'eer'] # exp_7 exp_8
 
 # Whole run round settings
 run_exp_round = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] # define randomseed as list
@@ -49,9 +49,9 @@ pos_class = 'POS'
 
 # Path
 # Dataset path
-dataset_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
+dataset_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
 # Result path
-exp_result_path = my_util.get_path(additional_path=['.', '.', 'mount','FaceRecognitionPython_data_store', 'Result', 'exp_result', exp, exp_name])
+exp_result_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', exp, exp_name])
 # Make directory
 my_util.make_directory(exp_result_path)
 
@@ -66,11 +66,6 @@ for exp_numb in run_exp_round:
     if 'BaselineEuclidean' in exp_name:
         my_data = pd.read_csv((dataset_path + dataset_name + '_' + dataset_exacted + '_nonorm' + '.txt'), sep=" ", header=0)
     else:
-        dataset_exacted_model = ''
-        if 'GenderEuclidean' in exp_name:
-            dataset_exacted_model = ['exp_8', 'eer'] # exp_7 for race, exp_8 for gender
-        else:
-            dataset_exacted_model = ['exp_7', 'eer'] # exp_7 for race, exp_8 for gender
         my_data = pd.read_csv((dataset_path + dataset_name + '_' + dataset_exacted + '_' + dataset_exacted_model[0] + '_run_' + str(0) + '(' + dataset_exacted_model[1] + ').txt'), sep=" ", header=0)
     # Separate data
     my_data_race = (my_data['gender'] + '-' + my_data['ethnicity']).values
@@ -80,30 +75,19 @@ for exp_numb in run_exp_round:
     # del tmp_training_sep_idx
     # Assign data
     # Training data
-    
-    # Assign idx
-    tmp_training_sep_idx = np.empty(0)
-    tmp_valid_sep_idx = np.empty(0)
-    tmp_test_sep_idx = np.empty(0)
-    for train_class_idx in train_class:
-        tmp_training_sep_idx = np.append(tmp_training_sep_idx, training_sep_idx[my_data_race[training_sep_idx] == train_class_idx])
-        tmp_valid_sep_idx = np.append(tmp_valid_sep_idx, valid_sep_idx[my_data_race[valid_sep_idx] == train_class_idx])
-        tmp_test_sep_idx = np.append(tmp_test_sep_idx, test_sep_idx[my_data_race[test_sep_idx] == train_class_idx])
-    
-    # Train data
-    training_sep_idx = tmp_training_sep_idx.astype(int)
+    training_sep_idx = training_sep_idx[my_data_race[training_sep_idx] == train_class]
     x_training = my_data.iloc[training_sep_idx,8:].values
     y_race_training = my_data_race[training_sep_idx]
     y_class_training = my_data.id.iloc[training_sep_idx].values
     y_id_training = my_data.data_id.iloc[training_sep_idx].values
     # Valid data
-    valid_sep_idx = tmp_valid_sep_idx.astype(int)
+    valid_sep_idx = valid_sep_idx[my_data_race[valid_sep_idx] == train_class]
     x_valid = my_data.iloc[valid_sep_idx,8:].values
     y_race_valid = my_data_race[valid_sep_idx]
     y_class_valid = my_data.id.iloc[valid_sep_idx].values
     y_id_valid = my_data.data_id.iloc[valid_sep_idx].values
     # Test data
-    test_sep_idx = tmp_test_sep_idx.astype(int)
+    test_sep_idx = test_sep_idx[my_data_race[test_sep_idx] == train_class]
     x_test = my_data.iloc[test_sep_idx,8:].values
     y_race_test = my_data_race[test_sep_idx]
     y_class_test = my_data.id.iloc[test_sep_idx].values
@@ -139,7 +123,7 @@ for exp_numb in run_exp_round:
         kfold_training_idx = [kfold_training_idx]
         kfold_test_idx = [kfold_test_idx]
         
-        query_exp_name_seed = (exp_name + '_run_' + str(exp_numb))
+        query_exp_name_seed = (query_exp_name + '_run_' + str(exp_numb))
         
         cv_results, avg_cv_results = distance_model.grid_search_cv_parallel(kfold_training_idx, kfold_test_idx, np.vstack((x_training, x_valid)), np.append(y_class_training, y_class_valid), np.append(y_id_training, y_id_valid), param_grid, exp_name, cv_run=cv_run, randomseed=exp_numb)
         

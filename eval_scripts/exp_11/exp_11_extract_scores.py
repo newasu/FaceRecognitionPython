@@ -17,7 +17,7 @@ import others.utilities as my_util
 
 # Experiment name
 exp = 'exp_11'
-exp_name = exp + '_alg_selmEuclidMeanPOS' # _alg_BaselineEuclidean _alg_GenderEuclidean _alg_RaceEuclidean _alg_selmEuclidSumPOS _alg_selmEuclidDistPOS _alg_selmEuclidMultiplyPOS _alg_selmEuclidMeanPOS _alg_elmRBFPOS _alg_elmRBFPOS_2
+exp_name = exp + '_alg_GenderEuclideanOneThreshold' # _alg_BaselineEuclidean _alg_GenderEuclidean _alg_RaceEuclidean _alg_selmEuclidSumPOS _alg_selmEuclidDistPOS _alg_selmEuclidMultiplyPOS _alg_selmEuclidMeanPOS _alg_elmRBFPOS _alg_elmRBFPOS_2 _alg_BaselineEuclideanOneThreshold _alg_GenderEuclideanOneThreshold
 
 class_model = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
 metric = ['auc', 'eer', 'accuracy', 'tar_1', 'tar_0d1', 'tar_0d01']
