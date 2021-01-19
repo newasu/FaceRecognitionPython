@@ -13,7 +13,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import pairwise_distances
 from sklearn.metrics import pairwise
 from scipy import linalg
-from scipy.stats import rankdata
+from scipy import stats
 from shapely.geometry import LineString
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -713,9 +713,9 @@ def exact_result_eval_retrieve(exacted_data, data_names, term_finding, metric_or
         avg_mat = np.average(tmp, axis=0)
         avg_mat = pd.DataFrame(np.average(tmp, axis=0)[np.newaxis,:], columns=data_names)
         if metric_ordering == 'descending':
-            ranked_mat = rankdata(-tmp, method='average', axis=1)
+            ranked_mat = stats.rankdata(-tmp, method='average', axis=1)
         else:
-            ranked_mat = rankdata(tmp, method='average', axis=1)
+            ranked_mat = stats.rankdata(tmp, method='average', axis=1)
         sum_ranked_mat = np.sum(ranked_mat, axis=0)
         ranked_mat = pd.DataFrame(ranked_mat, columns=data_names)
         sum_ranked_mat = pd.DataFrame(sum_ranked_mat[np.newaxis,:], columns=data_names)
@@ -766,5 +766,18 @@ def ceil(a, precision=0):
 
 def floor(a, precision=0):
     return np.round((a - (0.5 * 10**(-precision))), precision)
+
+def kendall_w(expt_ratings):
+    if expt_ratings.ndim!=2:
+        raise 'ratings matrix must be 2-dimensional'
+    k = expt_ratings.shape[0] # number of experimnet
+    n = expt_ratings.shape[1] # candidates
+    denom = k**2*(n**3-n)
+    rating_sums = np.sum(expt_ratings, axis=0)
+    S = n*np.var(rating_sums)
+    W = 12*S/denom
+    chi_square = k*(n-1)*W
+    confidence_level = stats.chi2.cdf(chi_square, n-1)
+    return S, W, chi_square, confidence_level
 
 

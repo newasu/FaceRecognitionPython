@@ -9,7 +9,7 @@ import os
 from tqdm import tqdm
 
 import tensorflow as tf
-import tensorflow_addons as tfa
+import tensorflow_addons as tfad
 
 # Import my own lib
 import others.utilities as my_util
@@ -42,13 +42,13 @@ train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian',
 
 # classifier
 classifier_exp = 'exp_11'
-classifier_model_rule = ['Mean', 'Mean', 'Mean', 'Multiply', 'Mean', 'Dist'] # Dist Mean Multiply Sum
+classifier_model_rule = ['Mean', 'Mean', 'Mean', 'Mean', 'Mean', 'Mean'] # Dist Mean Multiply Sum
 
 # gender and ethnicity model
 model_exp = 'exp_12'
 gender_exp_name = model_exp + '_gender_welm'
 ethnicity_exp_name = model_exp + '_ethnicity_welm'
-mode = 'auto' # auto manual
+mode = 'manual' # auto manual
 
 # Whole run round settings
 run_exp_round = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] # define randomseed as list
@@ -78,21 +78,15 @@ def evaluate_selm(tfa, tfc, tra, trc, tvl, sr, uc, md, smr):
     
     for tc_idx, tc_val in enumerate(train_class):
         tmp_idx = tra[sr] == tc_val
-        tmp_weight = pd.DataFrame(md[tc_val]['weightID'])[0].str.split('-',expand=True)
-        weight_a_idx = orig_indices[np.searchsorted(data_id[orig_indices], tmp_weight[0].values.astype(int))]
-        weight_b_idx = orig_indices[np.searchsorted(data_id[orig_indices], tmp_weight[1].values.astype(int))]
-        # siamese layer
-        tmp_feature = siamese_layer(tfa[sr][tmp_idx], tfc[sr][tmp_idx], smr[tc_idx])
-        tmp_weight_feature = siamese_layer(my_data_triplet.iloc[weight_a_idx].values[:,8:], my_data_triplet.iloc[weight_b_idx].values[:,8:], smr[tc_idx])
-        # Test model
-        [_, tmp_predictedY, _] = welm_model.predict(tmp_feature, tmp_weight_feature, md[tc_val]['beta'], md[tc_val]['distanceFunc'], md[tc_val]['kernel_param'], md[tc_val]['label_classes'], useTF=False)
+        
+        tmp_predictedY = cal_selm(md[tc_val], data_id, orig_indices, tfa[sr][tmp_idx], tfc[sr][tmp_idx], smr[tc_idx])
+        
         # Bind into whole predicted list
         predictedY[np.where(sr)[0][tmp_idx]] = np.ravel(tmp_predictedY)
         
         print(tc_val + ': ' + str(my_util.cal_accuracy(tvl[np.where(sr)[0][tmp_idx]], tmp_predictedY)))
         
-        del tmp_idx, tmp_weight, weight_a_idx, weight_b_idx
-        del tmp_feature, tmp_weight_feature, tmp_predictedY
+        del tmp_idx, tmp_predictedY
     
     # Assign NEG for samples were classified as not same race class
     predictedY[~sr] = 'NEG'
@@ -102,6 +96,18 @@ def evaluate_selm(tfa, tfc, tra, trc, tvl, sr, uc, md, smr):
     performance_metric = {'accuracy':my_util.cal_accuracy(tvl, predictedY)}
     
     return performance_metric
+
+def cal_selm(_md, _data_id, _orig_indices, _tfa, _tfc, _smr):
+    # selm weight
+    tmp_weight = pd.DataFrame(_md['weightID'])[0].str.split('-',expand=True)
+    weight_a_idx = _orig_indices[np.searchsorted(_data_id[_orig_indices], tmp_weight[0].values.astype(int))]
+    weight_b_idx = _orig_indices[np.searchsorted(_data_id[_orig_indices], tmp_weight[1].values.astype(int))]
+    # siamese layer
+    tmp_feature = siamese_layer(_tfa, _tfc, _smr)
+    tmp_weight_feature = siamese_layer(my_data_triplet.iloc[weight_a_idx].values[:,8:], my_data_triplet.iloc[weight_b_idx].values[:,8:], _smr)
+    # Test model
+    [_, tmp_predictedY, _] = welm_model.predict(tmp_feature, tmp_weight_feature, _md['beta'], _md['distanceFunc'], _md['kernel_param'], _md['label_classes'], useTF=False)
+    return tmp_predictedY
 
 def predict_race(fa, fb, tla, tlb, m):
     if m == 'auto':
@@ -119,8 +125,8 @@ def predict_race(fa, fb, tla, tlb, m):
         ethnicity_model_weight_idx = orig_indices[np.searchsorted(data_id[orig_indices], ethnicity_model['weightID'])].values
         [_, pd_a_ethnicity, _] = welm_model.predict(fa, my_data.iloc[ethnicity_model_weight_idx].values[:,8:], ethnicity_model['beta'], ethnicity_model['distanceFunc'], ethnicity_model['kernel_param'], ethnicity_model['label_classes'], useTF=False)
         [_, pd_b_ethnicity, _] = welm_model.predict(fb, my_data.iloc[ethnicity_model_weight_idx].values[:,8:], ethnicity_model['beta'], ethnicity_model['distanceFunc'], ethnicity_model['kernel_param'], ethnicity_model['label_classes'], useTF=False)
-        pd_a = pd_a_gender + '-' + pd_a_ethnicity
-        pd_b = pd_b_gender + '-' + pd_b_ethnicity
+        pd_a = np.ravel(pd_a_gender + '-' + pd_a_ethnicity)
+        pd_b = np.ravel(pd_b_gender + '-' + pd_b_ethnicity)
     pd_compare = pd_a == pd_b
     return pd_a, pd_b, pd_compare
 
@@ -155,7 +161,7 @@ for class_idx, class_val in enumerate(param['class']):
     triplet_model[class_val] = tf.keras.models.Sequential()
     triplet_model[class_val].add(tf.keras.layers.Dense(proposed_model_feature_size, input_dim=feature_size, activation='linear'))
     triplet_model[class_val].add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
-    triplet_model[class_val].compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001), loss=tfa.losses.TripletSemiHardLoss())
+    triplet_model[class_val].compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001), loss=tfad.losses.TripletSemiHardLoss())
     triplet_model[class_val].load_weights(triplet_model_path[class_val] + 'cp-' + str(param['epoch'][class_idx]).zfill(4) + '.ckpt')
     
 del triplet_model_path
@@ -246,6 +252,8 @@ predicted_race_anchor, predicted_race_compare, same_race = predict_race(test_fea
 # my_util.cal_accuracy(test_race_anchor, predicted_race_anchor)
 # my_util.cal_accuracy(test_race_compare, predicted_race_compare)
 # my_util.cal_accuracy(np.append(test_race_anchor, test_race_compare) , np.append(predicted_race_anchor, predicted_race_compare))
+# np.where(~(test_race_anchor==predicted_race_anchor))[0]
+# np.where(~(test_race_compare==predicted_race_compare))[0]
 
 # Extract triplet feature
 test_exacted_feature_anchor = np.empty((test_race_anchor.size, proposed_model_feature_size))

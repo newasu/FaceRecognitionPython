@@ -7,6 +7,7 @@ sys.path.append("./././")
 # Import lib
 import pandas as pd
 import numpy as np
+from scipy import stats
 import matplotlib.pyplot as plt 
 import matplotlib.ticker as plticker
 
@@ -77,6 +78,11 @@ my_std['welm'][57] = my_std['welm'][56]
 my_mean['selm'][57] = my_mean['selm'][56]
 my_std['selm'][57] = my_std['selm'][56]
 # my_std['selm'][0] = 7
+
+#############################################################################################
+
+t, pv = stats.ttest_ind(my_mean['selm'], my_mean['welm'])
+print('p-value: ' + str(pv))
 
 #############################################################################################
 

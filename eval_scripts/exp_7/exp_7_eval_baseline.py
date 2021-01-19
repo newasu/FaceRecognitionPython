@@ -21,14 +21,14 @@ from algorithms.paired_distance_alg import paired_distance_alg
 
 #############################################################################################
 
-# param = {'exp_name': 'baseline',
-#          'model': ['baseline', 'baseline', 'baseline', 'baseline', 'baseline', 'baseline'],  
-#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+param = {'exp':'exp_7', 'exp_name': 'baseline',
+         'model': ['baseline', 'baseline', 'baseline', 'baseline', 'baseline', 'baseline'],  
+         'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 
-param = {'exp':'exp_7', 'exp_name': 'racebaseline',
-         'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_240_e_50_a_1', 'b_360_e_50_a_1', 'b_270_e_50_a_1', 'b_240_e_50_a_1'], 
-         'epoch': [36, 32, 42, 25, 35, 28], 
-         'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian'], 'class-model': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
+# param = {'exp':'exp_7', 'exp_name': 'racebaseline',
+#          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_240_e_50_a_1', 'b_360_e_50_a_1', 'b_270_e_50_a_1', 'b_240_e_50_a_1'], 
+#          'epoch': [36, 32, 42, 25, 35, 28], 
+#          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian'], 'class-model': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 
 # param = {'exp':'exp_8', 'exp_name': 'racebaseline',
 #          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_180_e_50_a_1'], 
@@ -40,7 +40,7 @@ param = {'exp':'exp_7', 'exp_name': 'racebaseline',
 #          'epoch': [16, 16, 16, 17, 17, 17], 
 #          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
 
-exp = 'exp_7'
+exp = param['exp']
 exp_name = exp + '_' + param['exp_name'] + '_' + param['exp'] # _baseline _racebaseline
 dataset_name = 'Diveface'
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
@@ -56,9 +56,9 @@ valid_size = 0.1
 
 # Path
 # Dataset path
-dataset_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
+dataset_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Dataset', 'Diveface'])
 # Summary path
-summary_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'summary', exp])
+summary_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'summary', exp])
 #############################################################################################
 
 # Load data
@@ -136,7 +136,7 @@ for class_idx, class_val in enumerate(param['class']):
     feature_embedding = x_data[tmp_idx]
     if param['model'][class_idx] != 'baseline':
         # Load model
-        model_path = my_util.get_path(additional_path=['.', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', param['exp'], param['exp'] + '_alg_tl' + dataset_exacted + param['class-model'][class_idx] + '_' + param['model'][class_idx] + '_run_' + str(random_seed)])
+        model_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', param['exp'], param['exp'] + '_alg_tl' + dataset_exacted + param['class-model'][class_idx] + '_' + param['model'][class_idx] + '_run_' + str(random_seed)])
         proposed_model = tf.keras.models.Sequential()
         proposed_model.add(tf.keras.layers.Dense(proposed_model_feature_size, input_dim=feature_size, activation='linear'))
         proposed_model.add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
@@ -186,11 +186,11 @@ for eval_set_idx in eval_set:
     del eval_id_data, eval_x_data, eval_y_data
 
     # Save
-    pickle_write = open((summary_path + exp_name + '_run_' + str(random_seed) + '(' + eval_set_idx + ').pickle'), 'wb')
-    pickle.dump(performance_metric, pickle_write)
-    pickle_write.close()
-    del pickle_write, performance_metric
-    print('Saved')
+    # pickle_write = open((summary_path + exp_name + '_run_' + str(random_seed) + '(' + eval_set_idx + ').pickle'), 'wb')
+    # pickle.dump(performance_metric, pickle_write)
+    # pickle_write.close()
+    # del pickle_write, performance_metric
+    # print('Saved')
 
 
 
