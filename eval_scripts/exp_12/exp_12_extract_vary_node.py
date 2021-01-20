@@ -32,6 +32,8 @@ random_seed = 0
 # Algorithm parameters
 vary_hiddenNode = np.arange(1, 101)/100
 
+eval_metric = 'auc' # auc accuracy
+
 pos_class = 'POS'
 
 #############################################################################################
@@ -46,9 +48,9 @@ my_util.make_directory(summary_path)
 #############################################################################################
 
 # Extract results
-my_accuracy = {}
-my_accuracy[exp_alg[0]] = np.zeros((vary_hiddenNode.size, len(train_class)))
-my_accuracy[exp_alg[1]] = np.zeros((vary_hiddenNode.size, len(train_class)))
+my_score = {}
+my_score[exp_alg[0]] = np.zeros((vary_hiddenNode.size, len(train_class)))
+my_score[exp_alg[1]] = np.zeros((vary_hiddenNode.size, len(train_class)))
 
 for tc_idx, tc_value in enumerate(train_class):
     for alg in exp_alg:
@@ -59,13 +61,13 @@ for tc_idx, tc_value in enumerate(train_class):
             exp_file_path = my_util.join_path(exp_folder, exp_file)
             tmp = my_util.load_numpy_file(exp_file_path)
             
-            my_accuracy[alg][int(hdn*100)-1, tc_idx] = tmp['accuracy']
+            my_score[alg][int(hdn*100)-1, tc_idx] = tmp[eval_metric]
 
 my_mean = {}
 my_std = {}
 for alg in exp_alg:
-    my_mean[alg] = np.mean(my_accuracy[alg], axis=1) * 100
-    my_std[alg] = np.std(my_accuracy[alg], axis=1) * 100
+    my_mean[alg] = np.mean(my_score[alg], axis=1) * 100
+    my_std[alg] = np.std(my_score[alg], axis=1) * 100
 
 # np.where(my_mean['welm']==0)
 my_mean['welm'][28] = my_mean['welm'][27]
@@ -91,26 +93,32 @@ plt.rcParams['font.serif'] = 'Times New Roman'
 fig = plt.figure() 
 ax = plt.subplot(111)
 els = ax.errorbar(vary_hiddenNode*100, my_mean['welm'], yerr=my_std['welm'], label='WELM', color='black', elinewidth=0.5, lw=0.8, ls=':')
-els[-1][0].set_linestyle('--')
+els[-1][0].set_linestyle(':')
 ax.errorbar(vary_hiddenNode*100, my_mean['selm'], yerr=my_std['selm'], label='SELM', color='black', elinewidth=0.5, lw=0.8)
 # Set limit
 ax.set_xlim([-0.5, 100.5])
-ax.set_ylim([49.5, 100])
+ax.set_ylim([50, 101])
 # Set axis label
+if eval_metric == 'accuracy':
+    ylab = 'Accuracy'
+elif eval_metric == 'auc':
+    ylab = 'AUC'
+else:
+    ylab = '?'
 ax.set_xlabel('Hidden node used (%)', fontsize=14, fontname='Times New Roman')
-ax.set_ylabel('Accuracy (%)', fontsize=14, fontname='Times New Roman')
+ax.set_ylabel(ylab, fontsize=14, fontname='Times New Roman')
 # Set legend
-my_legend = ax.legend(prop={'family':'Times New Roman', 'size':12}, loc='lower right', fancybox=True, shadow=True)
+my_legend = ax.legend(prop={'family':'Times New Roman', 'size':13}, loc='lower right', fancybox=True, shadow=True)
 # Grid
 # loc = plticker.MultipleLocator(base=10)
 # ax.xaxis.set_minor_locator(loc)
 # ax.yaxis.set_minor_locator(loc)
 ax.set_axisbelow(True)
-ax.grid(b=True, which='major', axis='both', linestyle=':', color='gray', alpha=1)
+ax.grid(b=True, which='major', axis='both', linestyle='-', color='gray', alpha=0.35)
 ax.minorticks_on()
-ax.grid(b=True, which='minor', axis='both', linestyle='-', color='#999999', alpha=0.2)
+ax.grid(b=True, which='minor', axis='both', linestyle='-', color='#999999', alpha=0.15)
 # Save
-fig.savefig('varynode.png')
-fig.savefig('varynode.pdf')
+fig.savefig('varynode_' + eval_metric + '.png')
+fig.savefig('varynode_' + eval_metric + '.pdf')
 
 print()

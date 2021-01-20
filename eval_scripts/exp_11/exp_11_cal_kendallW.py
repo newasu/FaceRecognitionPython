@@ -93,15 +93,6 @@ print('Confidence level cal. from W: ' + str(cl))
 print(stats.chi2.ppf(1-.005, df=rankOrder[eval_metric].shape[0]-1))
 # stats.chi2.cdf(chi, rankOrder[eval_metric].shape[0]-1)
 
-# compare selm sum vs mean
-# rankOrder[eval_metric][2] # Sum
-# rankOrder[eval_metric][5] # Mean
-
-# max_idx = np.argmax([scores[eval_metric][2], scores[eval_metric][5]], axis=0)
-# count = np.bincount(max_idx)
-# element = np.nonzero(count)[0]
-# np.vstack((element,count[element])).T
-
 #############################################################################################
 
 # Sort descending order
@@ -149,6 +140,71 @@ ax.grid(b=True, which='major', axis='both', linestyle=':', color='gray', alpha=1
 fig.savefig('rankingOrder.png')
 fig.savefig('rankingOrder.pdf')
 
+#############################################################################################
 
+# Compare selm sum vs mean
+
+# rankOrder[eval_metric][2] # Sum
+# rankOrder[eval_metric][5] # Mean
+
+rule_list = ['Sum', 'Mean']
+sum_idx = np.where([rule_list[0] in s for s in method_names])[0]
+mean_idx = np.where([rule_list[1] in s for s in method_names])[0]
+if sum_idx.size > 0 and mean_idx.size > 0:
+    
+    my_labels = ['Accuracy', 'AUC']
+    
+    plot_score = {}
+    for em in my_labels:
+        max_idx = np.argmax([scores[em.lower()][2], scores[em.lower()][5]], axis=0)
+        count = np.bincount(max_idx)
+        element = np.nonzero(count)[0]
+        plot_score[em.lower()] = np.vstack((element,count[element])).T
+    del em, max_idx, count, element
+    
+    # Plot
+    plt.rcParams['font.serif'] = 'Times New Roman'
+    fig = plt.figure() 
+    ax = plt.subplot(111)
+    # patterns = [ "|" , "\\" , "/" , "+" , "-", ".", "*","x", "o", "O" ]
+    patterns = ["/", "\\"]
+    label_loc = np.arange(len(my_labels))  # the label locations
+    width = 0.4  # the width of the bars
+    
+    rects = {}
+    for rl_idx, rl_val in enumerate(rule_list):
+        tmp_plot_score = []
+        for em in my_labels:
+            tmp_plot_score.append(plot_score[em.lower()][rl_idx,1])
+        # rects[rl_val.lower()] = ax.bar(label_loc - width/2, tmp_plot_score, width, label=rl_val)
+        rects[rl_val.lower()] = ax.bar(label_loc - width/2, tmp_plot_score, width, label='SELM$_{' + rl_val + '}$', color='white', edgecolor='black', hatch=patterns[rl_idx])
+        width = -width
+        
+        # Text over bar
+        for rect in rects[rl_val.lower()]:
+            height = rect.get_height()
+            ax.annotate('{}'.format(height), xy=(rect.get_x() + rect.get_width() / 2, height), xytext=(0, 3), textcoords="offset points", ha='center', va='bottom')
+
+    
+    # Set limit
+    # ax.set_xlim([-0.5, 100.5])
+    ax.set_ylim([0, 60])
+    # Set axis label
+    ax.set_xticks(label_loc)
+    ax.set_xticklabels(my_labels, fontsize=13, fontname='Times New Roman')
+    ax.set_ylabel('Number of overcomes', fontsize=14, fontname='Times New Roman')
+    # Set legend
+    my_legend = plt.legend(prop={'family':'Times New Roman', 'size':13}, ncol=1, loc='upper right', framealpha=0, fancybox=True, shadow=False)
+    # Grid
+    ax.set_axisbelow(True)
+    ax.grid(b=True, which='major', axis='both', linestyle='-', color='gray', alpha=0.35)
+    ax.minorticks_on()
+    ax.grid(b=True, which='minor', axis='both', linestyle='-', color='#999999', alpha=0.15)
+    # Save
+    fig.savefig('compare_overcome.png')
+    fig.savefig('compare_overcome.pdf')
+
+
+#############################################################################################
 
 print()
