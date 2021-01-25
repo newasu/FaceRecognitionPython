@@ -184,7 +184,6 @@ if sum_idx.size > 0 and mean_idx.size > 0:
         for rect in rects[rl_val.lower()]:
             height = rect.get_height()
             ax.annotate('{}'.format(height), xy=(rect.get_x() + rect.get_width() / 2, height), xytext=(0, 3), textcoords="offset points", ha='center', va='bottom')
-
     
     # Set limit
     # ax.set_xlim([-0.5, 100.5])

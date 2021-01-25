@@ -83,7 +83,11 @@ my_std['selm'][57] = my_std['selm'][56]
 
 #############################################################################################
 
+# my_mean['welm'][np.argmax(my_mean['welm'])]
+# my_mean['selm'][np.argmax(my_mean['selm'])]
+
 t, pv = stats.ttest_ind(my_mean['selm'], my_mean['welm'])
+print('t-test: ' + str(t))
 print('p-value: ' + str(pv))
 
 #############################################################################################

@@ -10,10 +10,11 @@ from tqdm import tqdm
 
 import tensorflow as tf
 import tensorflow_addons as tfad
+from sklearn import preprocessing
 
 # Import my own lib
 import others.utilities as my_util
-from algorithms.selm import selm
+# from algorithms.selm import selm
 from algorithms.welm import welm
 from algorithms.paired_distance_alg import paired_distance_alg
 
@@ -26,8 +27,22 @@ tf.config.experimental.set_memory_growth(gpus[0], True)
 
 #############################################################################################
 
-filename_comment = 'eer'
-param = {'exp':'exp_7', 
+# classifier
+eval_mode = 'selm' # selm baseline
+classifier_exp = 'exp_11'
+classifier_model_rule = ['Sum', 'Sum', 'Sum', 'Sum', 'Sum', 'Sum'] # Dist Mean Multiply Sum
+
+# gender and ethnicity model
+race_classify_mode = 'auto' # auto manual none
+model_exp = 'exp_12'
+gender_exp_name = model_exp + '_gender_welm'
+ethnicity_exp_name = model_exp + '_ethnicity_welm'
+
+# Experiment
+exp_name = model_exp + '_framework_' + eval_mode
+
+triplet_filename_comment = 'eer'
+triplet_param = {'exp':'exp_7', 
          'model': ['b_180_e_50_a_1', 'b_180_e_50_a_1', 'b_240_e_50_a_1', 'b_360_e_50_a_1', 'b_270_e_50_a_1', 'b_240_e_50_a_1'], 
          'epoch': [36, 32, 42, 25, 35, 28], 
          'class': ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']}
@@ -35,20 +50,10 @@ param = {'exp':'exp_7',
 dataset_name = 'Diveface'
 dataset_exacted = 'resnet50' # vgg16 resnet50 retinaface
 
-exp = param['exp']
-exp_name = exp + '_alg_tl' + dataset_exacted
+triplet_model_exp = triplet_param['exp']
+triplet_model_exp_name = triplet_model_exp + '_alg_tl' + dataset_exacted
 
 train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
-
-# classifier
-classifier_exp = 'exp_11'
-classifier_model_rule = ['Mean', 'Mean', 'Mean', 'Mean', 'Mean', 'Mean'] # Dist Mean Multiply Sum
-
-# gender and ethnicity model
-model_exp = 'exp_12'
-gender_exp_name = model_exp + '_gender_welm'
-ethnicity_exp_name = model_exp + '_ethnicity_welm'
-mode = 'manual' # auto manual
 
 # Whole run round settings
 run_exp_round = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] # define randomseed as list
@@ -71,31 +76,34 @@ def searchIdx(queryID, src):
     orig_indices = src.argsort()
     return orig_indices[np.searchsorted(src[orig_indices], queryID)]
 
-def evaluate_selm(tfa, tfc, tra, trc, tvl, sr, uc, md, smr):
-    predictedY = np.tile('NEG', tvl.size)
+def evaluate(tfa, tfc, tra, trc, pra, prc, tvl, sr, uc, md, em):
     data_id = my_data_triplet['data_id'].values
     orig_indices = data_id.argsort()
+    predictedY = np.tile('NEG', tvl.size)
     
     for tc_idx, tc_val in enumerate(train_class):
-        tmp_idx = tra[sr] == tc_val
-        
-        tmp_predictedY = cal_selm(md[tc_val], data_id, orig_indices, tfa[sr][tmp_idx], tfc[sr][tmp_idx], smr[tc_idx])
-        
+        tmp_idx = pra[sr] == tc_val
+        # Predict
+        if em == 'selm':
+            tmp_predictedY = cal_selm(md[tc_val], data_id, orig_indices, tfa[sr][tmp_idx], tfc[sr][tmp_idx], md[tc_val]['combine_rule'])
+        else:
+            _, tmp_predictedY, _ = distance_model.predict(tfa[sr][tmp_idx], tfc[sr][tmp_idx], tvl[sr][tmp_idx], uc, md[tc_val]['kernel_param'], distance_metric=md[tc_val]['distanceFunc'])
         # Bind into whole predicted list
         predictedY[np.where(sr)[0][tmp_idx]] = np.ravel(tmp_predictedY)
-        
-        print(tc_val + ': ' + str(my_util.cal_accuracy(tvl[np.where(sr)[0][tmp_idx]], tmp_predictedY)))
-        
+        # Cal metric
+        # tmp_metric = my_util.cal_accuracy(tvl[np.where(sr)[0][tmp_idx]], tmp_predictedY)
+        # print(tc_val + ': ' + str(tmp_metric))
         del tmp_idx, tmp_predictedY
-    
+        
     # Assign NEG for samples were classified as not same race class
     predictedY[~sr] = 'NEG'
     
     # Eval performance
+    correct_list = tvl == predictedY
     # Performance metrics
     performance_metric = {'accuracy':my_util.cal_accuracy(tvl, predictedY)}
     
-    return performance_metric
+    return performance_metric, correct_list
 
 def cal_selm(_md, _data_id, _orig_indices, _tfa, _tfc, _smr):
     # selm weight
@@ -111,9 +119,6 @@ def cal_selm(_md, _data_id, _orig_indices, _tfa, _tfc, _smr):
 
 def predict_race(fa, fb, tla, tlb, m):
     if m == 'auto':
-        pd_a = tla
-        pd_b = tlb
-    else:
         my_data = pd.read_csv((diveface_path + 'Diveface' + '_' + 'resnet50' + '_nonorm.txt'), sep=" ", header=0)
         data_id = my_data.data_id
         orig_indices = data_id.argsort()
@@ -127,17 +132,26 @@ def predict_race(fa, fb, tla, tlb, m):
         [_, pd_b_ethnicity, _] = welm_model.predict(fb, my_data.iloc[ethnicity_model_weight_idx].values[:,8:], ethnicity_model['beta'], ethnicity_model['distanceFunc'], ethnicity_model['kernel_param'], ethnicity_model['label_classes'], useTF=False)
         pd_a = np.ravel(pd_a_gender + '-' + pd_a_ethnicity)
         pd_b = np.ravel(pd_b_gender + '-' + pd_b_ethnicity)
-    pd_compare = pd_a == pd_b
+        pd_compare = pd_a == pd_b
+    elif m == 'manual':
+        pd_a = tla
+        pd_b = tlb
+        pd_compare = pd_a == pd_b
+    else:
+        pd_a = tla
+        pd_b = tlb
+        pd_compare = np.tile(True, pd_a.size)
+    
     return pd_a, pd_b, pd_compare
 
 def siamese_layer(fa,fb,cr):
-    if cr == 'Sum':
+    if cr == 'sum':
         return fa+fb
-    elif cr == 'Mean':
+    elif cr == 'mean':
         return (fa + fb)/2
-    elif cr == 'Multiply':
+    elif cr == 'multiply':
         return np.multiply(fa, fb)
-    elif cr == 'Dist':
+    elif cr == 'dist':
         return np.absolute(fa - fb)
 
 #############################################################################################
@@ -149,38 +163,41 @@ elif dataset_exacted == 'resnet50':
     feature_size = 2048
 proposed_model_feature_size = 1024
 
-# Initial triplets network model
-triplet_model_path = {}
-triplet_model = {}
-for class_idx, class_val in enumerate(param['class']):
-    # Triplet model
-    if param['exp'] == 'exp_7':
-        triplet_model_path[class_val] = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', exp, exp_name + param['class'][class_idx] + '_' + param['model'][class_idx] + '_run_' + str(random_seed)])
-    else:
-        triplet_model_path[class_val] = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', exp, exp_name + param['class-model'][class_idx] + '_' + param['model'][class_idx] + '_run_' + str(random_seed)])
-    triplet_model[class_val] = tf.keras.models.Sequential()
-    triplet_model[class_val].add(tf.keras.layers.Dense(proposed_model_feature_size, input_dim=feature_size, activation='linear'))
-    triplet_model[class_val].add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
-    triplet_model[class_val].compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001), loss=tfad.losses.TripletSemiHardLoss())
-    triplet_model[class_val].load_weights(triplet_model_path[class_val] + 'cp-' + str(param['epoch'][class_idx]).zfill(4) + '.ckpt')
-    
-del triplet_model_path
-
-gender_model = my_util.load_numpy_file(gender_model_path[:-1])
-ethnicity_model = my_util.load_numpy_file(ethnicity_model_path[:-1])
-
 # Initial model
-distance_model = paired_distance_alg()
-selm_model = selm()
-welm_model = welm()
+if eval_mode == 'selm':
+    # selm_model = selm()
+    welm_model = welm()
+    # Initial triplets network model
+    triplet_model_path = {}
+    triplet_model = {}
+    for class_idx, class_val in enumerate(triplet_param['class']):
+        # Triplet model
+        if triplet_param['exp'] == 'exp_7':
+            triplet_model_path[class_val] = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', triplet_model_exp, triplet_model_exp_name + triplet_param['class'][class_idx] + '_' + triplet_param['model'][class_idx] + '_run_' + str(random_seed)])
+        else:
+            triplet_model_path[class_val] = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'gridsearch', triplet_model_exp, triplet_model_exp_name + triplet_param['class-model'][class_idx] + '_' + triplet_param['model'][class_idx] + '_run_' + str(random_seed)])
+        triplet_model[class_val] = tf.keras.models.Sequential()
+        triplet_model[class_val].add(tf.keras.layers.Dense(proposed_model_feature_size, input_dim=feature_size, activation='linear'))
+        triplet_model[class_val].add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
+        triplet_model[class_val].compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001), loss=tfad.losses.TripletSemiHardLoss())
+        triplet_model[class_val].load_weights(triplet_model_path[class_val] + 'cp-' + str(triplet_param['epoch'][class_idx]).zfill(4) + '.ckpt')
+    del triplet_model_path
+    
+else:
+    distance_model = paired_distance_alg()
+
+if race_classify_mode == 'auto':
+        gender_model = my_util.load_numpy_file(gender_model_path[:-1])
+        ethnicity_model = my_util.load_numpy_file(ethnicity_model_path[:-1])
+
 unique_class = {'pos':'POS', 'neg':'NEG'}
 label_classes = np.unique(['POS', 'NEG'])
 
 #############################################################################################
 
 # Read txt
-my_data_triplet = pd.read_csv((diveface_path + 'Diveface' + '_' + 'resnet50' + '_' + 'exp_7' + '_run_' + str(0) + '(' + filename_comment + ').txt'), sep=" ", header=0)
-my_data = pd.read_csv(dataset_path + 'DevTest_cleaned.txt', header=0, sep=' ')
+my_data_triplet = pd.read_csv((diveface_path + 'Diveface' + '_' + 'resnet50' + '_' + 'exp_7' + '_run_' + str(0) + '(' + triplet_filename_comment + ').txt'), sep=" ", header=0)
+my_data = pd.read_csv(dataset_path + 'DevTest' + os.sep + 'DevTest_cleaned.txt', header=0, sep=' ')
 my_source = (my_data['id'] + '_' + my_data['pose'].astype(str)).values
 pairsDevTest_POS = pd.read_csv(dataset_path + 'pairsDevTest_POS.txt', header=None, sep='\t')
 pairsDevTest_NEG = pd.read_csv(dataset_path + 'pairsDevTest_NEG.txt', header=None, sep='\t')
@@ -235,12 +252,14 @@ test_gender_anchor = np.append(test_gender_anchor, my_data.iloc[test_idx_anchor]
 test_ethnicity_anchor = np.append(test_ethnicity_anchor, my_data.iloc[test_idx_anchor]['ethnicity'])
 test_id_anchor = np.append(test_id_anchor, my_data.iloc[test_idx_anchor]['id'])
 test_pose_anchor = np.append(test_pose_anchor, my_data.iloc[test_idx_anchor]['pose']).astype(int)
+test_filename_anchor = test_id_anchor + '_' + np.char.zfill(test_pose_anchor.astype(str), 4) + '.jpg'
 test_feature_anchor = np.vstack((test_feature_anchor, my_data.iloc[test_idx_anchor].values[:,5:]))
 test_race_anchor = test_gender_anchor + '-' + test_ethnicity_anchor
 test_gender_compare = np.append(test_gender_compare, my_data.iloc[test_idx_compare]['gender'])
 test_ethnicity_compare = np.append(test_ethnicity_compare, my_data.iloc[test_idx_compare]['ethnicity'])
 test_id_compare = np.append(test_id_compare, my_data.iloc[test_idx_compare]['id'])
 test_pose_compare = np.append(test_pose_compare, my_data.iloc[test_idx_compare]['pose']).astype(int)
+test_filename_compare = test_id_compare + '_' + np.char.zfill(test_pose_compare.astype(str), 4) + '.jpg'
 test_feature_compare = np.vstack((test_feature_compare, my_data.iloc[test_idx_compare].values[:,5:]))
 test_race_compare = test_gender_compare + '-' + test_ethnicity_compare
 test_id = test_id_anchor + '_' + test_pose_anchor.astype(str) + '-' + test_id_compare + '-' + test_pose_compare.astype(str)
@@ -248,7 +267,7 @@ test_valid_label = np.tile('POS', 500)
 test_valid_label = np.append(test_valid_label, np.tile('NEG', 500))
 
 # Predict race
-predicted_race_anchor, predicted_race_compare, same_race = predict_race(test_feature_anchor, test_feature_compare, test_race_anchor, test_race_compare, mode)
+predicted_race_anchor, predicted_race_compare, same_race = predict_race(test_feature_anchor, test_feature_compare, test_race_anchor, test_race_compare, race_classify_mode)
 # my_util.cal_accuracy(test_race_anchor, predicted_race_anchor)
 # my_util.cal_accuracy(test_race_compare, predicted_race_compare)
 # my_util.cal_accuracy(np.append(test_race_anchor, test_race_compare) , np.append(predicted_race_anchor, predicted_race_compare))
@@ -256,28 +275,37 @@ predicted_race_anchor, predicted_race_compare, same_race = predict_race(test_fea
 # np.where(~(test_race_compare==predicted_race_compare))[0]
 
 # Extract triplet feature
-test_exacted_feature_anchor = np.empty((test_race_anchor.size, proposed_model_feature_size))
-test_exacted_feature_compare = np.empty((test_race_compare.size, proposed_model_feature_size))
-for class_val in tqdm(param['class']):
-    # Extract anchor
-    tmp_idx = np.where(predicted_race_anchor == class_val)[0]
-    feature_embedding = test_feature_anchor[tmp_idx]
-    feature_embedding = triplet_model[class_val].predict(feature_embedding.astype(np.float64))
-    test_exacted_feature_anchor[tmp_idx] = feature_embedding
-    del tmp_idx, feature_embedding
-    # Extracr compare
-    tmp_idx = np.where(predicted_race_compare == class_val)[0]
-    feature_embedding = test_feature_compare[tmp_idx]
-    feature_embedding = triplet_model[class_val].predict(feature_embedding.astype(np.float64))
-    test_exacted_feature_compare[tmp_idx] = feature_embedding
-    del tmp_idx, feature_embedding
+if eval_mode == 'baseline':
+    test_exacted_feature_anchor = preprocessing.normalize(test_feature_anchor, norm='l2', axis=1, copy=True, return_norm=False)
+    test_exacted_feature_compare = preprocessing.normalize(test_feature_compare, norm='l2', axis=1, copy=True, return_norm=False)
+else:
+    test_exacted_feature_anchor = np.empty((test_race_anchor.size, proposed_model_feature_size))
+    test_exacted_feature_compare = np.empty((test_race_compare.size, proposed_model_feature_size))
+    for class_val in tqdm(triplet_param['class']):
+        # Extract anchor
+        tmp_idx = np.where(predicted_race_anchor == class_val)[0]
+        feature_embedding = test_feature_anchor[tmp_idx]
+        feature_embedding = triplet_model[class_val].predict(feature_embedding.astype(np.float64))
+        test_exacted_feature_anchor[tmp_idx] = feature_embedding
+        del tmp_idx, feature_embedding
+        # Extracr compare
+        tmp_idx = np.where(predicted_race_compare == class_val)[0]
+        feature_embedding = test_feature_compare[tmp_idx]
+        feature_embedding = triplet_model[class_val].predict(feature_embedding.astype(np.float64))
+        test_exacted_feature_compare[tmp_idx] = feature_embedding
+        del tmp_idx, feature_embedding
 
 #############################################################################################
 
 tmp_accuracy_all = np.empty(0)
+tmp_race_accuracy_all = np.empty((0, len(train_class)))
 # tmp_auc_all = np.empty(0)
 # tmp_accuracy_race = np.empty((0, len(train_class)))
 # tmp_auc_race = np.empty((0, len(train_class)))
+incorrect_list = np.empty(0)
+incorrect_true_race = np.empty(0)
+incorrect_prediceted_race = np.empty(0)
+incorrect_true_label = np.empty(0)
 
 # Run experiment
 for exp_numb in run_exp_round:
@@ -286,19 +314,48 @@ for exp_numb in run_exp_round:
     # Load model
     model = {}
     for train_class_idx, train_class_val in enumerate(train_class):
-        tmp_exp_name = classifier_exp + '_alg_selmEuclid' + classifier_model_rule[train_class_idx] + 'POS_' + train_class_val
+        if eval_mode == 'baseline':
+            tmp_exp_name = classifier_exp + '_alg_BaselineEuclideanOneThreshold_' + train_class_val
+        else:
+            tmp_exp_name = classifier_exp + '_alg_selmEuclid' + classifier_model_rule[train_class_idx] + 'POS_' + train_class_val
         model_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', classifier_exp, tmp_exp_name])
         model[train_class_val] = my_util.load_numpy_file(model_path + tmp_exp_name + '_run_' + str(exp_numb) + '.npy')
-    
+    del tmp_exp_name, train_class_idx, train_class_val, model_path
+        
     # Evaluate all
-    performance_metric = evaluate_selm(test_exacted_feature_anchor, test_exacted_feature_compare, test_race_anchor, test_race_compare, test_valid_label, same_race, unique_class, model, classifier_model_rule)
+    performance_metric, correct_list = evaluate(test_exacted_feature_anchor, test_exacted_feature_compare, test_race_anchor, test_race_compare, predicted_race_anchor, predicted_race_compare, test_valid_label, same_race, unique_class, model, eval_mode)
+    # Append score
+    tmp_race_performance_metric = np.empty(0)
+    for tc_idx in train_class:
+        tmp_idx = (test_race_anchor == tc_idx) + (test_race_compare == tc_idx)
+        tmp_race_performance_metric = np.append(tmp_race_performance_metric, correct_list[tmp_idx].sum()/len(correct_list[tmp_idx]))
+    tmp_race_accuracy_all = np.vstack((tmp_race_accuracy_all, tmp_race_performance_metric))
+    del tmp_idx, tmp_race_performance_metric
     tmp_accuracy_all = np.append(tmp_accuracy_all, performance_metric['accuracy'])
+    # Assign incorrect predicted list
+    incorrect_list = np.append(incorrect_list, test_filename_anchor[~correct_list] + '--' + test_filename_compare[~correct_list])
+    incorrect_true_race = np.append(incorrect_true_race, test_race_anchor[~correct_list] + '--' + test_race_compare[~correct_list])
+    incorrect_prediceted_race = np.append(incorrect_prediceted_race, predicted_race_anchor[~correct_list] + '--' + predicted_race_compare[~correct_list])
+    incorrect_true_label = np.append(incorrect_true_label, test_valid_label[~correct_list])
     
     print('Finished ' + exp_name_seed)
     
-    del performance_metric
-    
-print(tmp_accuracy_all)
-print(np.mean(tmp_accuracy_all))
+    del performance_metric, correct_list
+
+print(train_class)
+print(tmp_race_accuracy_all)
+print(np.mean(tmp_race_accuracy_all, axis=1))
+print(np.mean(tmp_race_accuracy_all))
+# print(tmp_accuracy_all)
+# print(np.mean(tmp_accuracy_all))
+
+if eval_mode == 'selm':
+    save_incorrect_list = np.unique(incorrect_list[:,None] + '--' + incorrect_true_race[:,None] + '--' + incorrect_prediceted_race[:,None] + '--' + incorrect_true_label)
+
+    # Save incorrect_prediceted
+    # np.savetxt('incorrect_list.txt', incorrect_list, delimiter=' ', fmt='%s')
+    # np.savetxt('incorrect_true_race.txt', incorrect_true_race, delimiter=' ', fmt='%s')
+    # np.savetxt('incorrect_prediceted_race.txt', incorrect_prediceted_race, delimiter=' ', fmt='%s')
+    np.savetxt('save_incorrect_list_' + race_classify_mode + '.txt', save_incorrect_list, delimiter=' ', fmt='%s')
 
 print()
