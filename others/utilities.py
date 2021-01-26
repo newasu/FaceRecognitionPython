@@ -494,16 +494,25 @@ def triplet_loss_paring(data_id, data_class, **kwargs):
     return triplet_dataset
 
 def do_triplet_loss_paring(unique_class_idx, data, unique_class):
-    tmp = data.query('image_class == ' + str(unique_class[unique_class_idx]))
+    def query(_data, _query_key):
+        if isinstance(_query_key, str):
+            _tmp = _data[_data.image_class == _query_key]
+        else:
+            _tmp = _data.query('image_class == ' + str(_query_key))
+        return _tmp
+    
+    tmp = query(data, unique_class[unique_class_idx])
     anchor_id = tmp.iloc[0].image_id
     anchor_idx = tmp.iloc[0][0]
     positive_id = tmp.iloc[1].image_id
     positive_idx = tmp.iloc[1][0]
     positive_class = tmp.iloc[1].image_class
     if unique_class_idx == len(unique_class)-1: # The last sample must to be paired with first sample
-        tmp = data.query('image_class == ' + str(unique_class[0]))    
+        # tmp = data.query('image_class == ' + str(unique_class[0]))
+        tmp = query(data, unique_class[0])
     else:
-        tmp = data.query('image_class == ' + str(unique_class[(unique_class_idx+1)]))
+        # tmp = data.query('image_class == ' + str(unique_class[(unique_class_idx+1)]))
+        tmp = query(data, unique_class[unique_class_idx+1])
     negative_id = tmp.iloc[0].image_id
     negative_idx = tmp.iloc[0][0]
     negative_class = tmp.iloc[0].image_class

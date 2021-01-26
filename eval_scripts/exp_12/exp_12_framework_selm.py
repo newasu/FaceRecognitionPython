@@ -18,7 +18,7 @@ import others.utilities as my_util
 from algorithms.welm import welm
 from algorithms.paired_distance_alg import paired_distance_alg
 
-gpu_id = 1
+gpu_id = 0
 os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 # Clear GPU cache
 tf.keras.backend.clear_session()
@@ -28,12 +28,12 @@ tf.config.experimental.set_memory_growth(gpus[0], True)
 #############################################################################################
 
 # classifier
-eval_mode = 'selm' # selm baseline
+eval_mode = 'baseline' # selm baseline
 classifier_exp = 'exp_11'
 classifier_model_rule = ['Sum', 'Sum', 'Sum', 'Sum', 'Sum', 'Sum'] # Dist Mean Multiply Sum
 
 # gender and ethnicity model
-race_classify_mode = 'auto' # auto manual none
+race_classify_mode = 'manual' # auto manual none
 model_exp = 'exp_12'
 gender_exp_name = model_exp + '_gender_welm'
 ethnicity_exp_name = model_exp + '_ethnicity_welm'
@@ -56,7 +56,7 @@ triplet_model_exp_name = triplet_model_exp + '_alg_tl' + dataset_exacted
 train_class = ['female-asian', 'female-black', 'female-caucasian', 'male-asian', 'male-black', 'male-caucasian']
 
 # Whole run round settings
-run_exp_round = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] # define randomseed as list
+run_exp_round = [0] # define randomseed as list [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 random_seed = 0
 
@@ -103,7 +103,7 @@ def evaluate(tfa, tfc, tra, trc, pra, prc, tvl, sr, uc, md, em):
     # Performance metrics
     performance_metric = {'accuracy':my_util.cal_accuracy(tvl, predictedY)}
     
-    return performance_metric, correct_list
+    return performance_metric, predictedY, correct_list
 
 def cal_selm(_md, _data_id, _orig_indices, _tfa, _tfc, _smr):
     # selm weight
@@ -187,8 +187,8 @@ else:
     distance_model = paired_distance_alg()
 
 if race_classify_mode == 'auto':
-        gender_model = my_util.load_numpy_file(gender_model_path[:-1])
-        ethnicity_model = my_util.load_numpy_file(ethnicity_model_path[:-1])
+    gender_model = my_util.load_numpy_file(gender_model_path[:-1])
+    ethnicity_model = my_util.load_numpy_file(ethnicity_model_path[:-1])
 
 unique_class = {'pos':'POS', 'neg':'NEG'}
 label_classes = np.unique(['POS', 'NEG'])
@@ -197,7 +197,7 @@ label_classes = np.unique(['POS', 'NEG'])
 
 # Read txt
 my_data_triplet = pd.read_csv((diveface_path + 'Diveface' + '_' + 'resnet50' + '_' + 'exp_7' + '_run_' + str(0) + '(' + triplet_filename_comment + ').txt'), sep=" ", header=0)
-my_data = pd.read_csv(dataset_path + 'DevTest' + os.sep + 'DevTest_cleaned.txt', header=0, sep=' ')
+my_data = pd.read_csv(dataset_path + 'DevTest' + os.sep + 'DevTest_cleaned_backup.txt', header=0, sep=' ')
 my_source = (my_data['id'] + '_' + my_data['pose'].astype(str)).values
 pairsDevTest_POS = pd.read_csv(dataset_path + 'pairsDevTest_POS.txt', header=None, sep='\t')
 pairsDevTest_NEG = pd.read_csv(dataset_path + 'pairsDevTest_NEG.txt', header=None, sep='\t')
@@ -306,6 +306,7 @@ incorrect_list = np.empty(0)
 incorrect_true_race = np.empty(0)
 incorrect_prediceted_race = np.empty(0)
 incorrect_true_label = np.empty(0)
+incorrect_predicted_label = np.empty(0)
 
 # Run experiment
 for exp_numb in run_exp_round:
@@ -323,7 +324,7 @@ for exp_numb in run_exp_round:
     del tmp_exp_name, train_class_idx, train_class_val, model_path
         
     # Evaluate all
-    performance_metric, correct_list = evaluate(test_exacted_feature_anchor, test_exacted_feature_compare, test_race_anchor, test_race_compare, predicted_race_anchor, predicted_race_compare, test_valid_label, same_race, unique_class, model, eval_mode)
+    performance_metric, predictedY, correct_list = evaluate(test_exacted_feature_anchor, test_exacted_feature_compare, test_race_anchor, test_race_compare, predicted_race_anchor, predicted_race_compare, test_valid_label, same_race, unique_class, model, eval_mode)
     # Append score
     tmp_race_performance_metric = np.empty(0)
     for tc_idx in train_class:
@@ -337,6 +338,7 @@ for exp_numb in run_exp_round:
     incorrect_true_race = np.append(incorrect_true_race, test_race_anchor[~correct_list] + '--' + test_race_compare[~correct_list])
     incorrect_prediceted_race = np.append(incorrect_prediceted_race, predicted_race_anchor[~correct_list] + '--' + predicted_race_compare[~correct_list])
     incorrect_true_label = np.append(incorrect_true_label, test_valid_label[~correct_list])
+    incorrect_predicted_label = np.append(incorrect_predicted_label, predictedY[~correct_list])
     
     print('Finished ' + exp_name_seed)
     
@@ -349,13 +351,12 @@ print(np.mean(tmp_race_accuracy_all))
 # print(tmp_accuracy_all)
 # print(np.mean(tmp_accuracy_all))
 
-if eval_mode == 'selm':
-    save_incorrect_list = np.unique(incorrect_list[:,None] + '--' + incorrect_true_race[:,None] + '--' + incorrect_prediceted_race[:,None] + '--' + incorrect_true_label)
 
-    # Save incorrect_prediceted
-    # np.savetxt('incorrect_list.txt', incorrect_list, delimiter=' ', fmt='%s')
-    # np.savetxt('incorrect_true_race.txt', incorrect_true_race, delimiter=' ', fmt='%s')
-    # np.savetxt('incorrect_prediceted_race.txt', incorrect_prediceted_race, delimiter=' ', fmt='%s')
-    np.savetxt('save_incorrect_list_' + race_classify_mode + '.txt', save_incorrect_list, delimiter=' ', fmt='%s')
+# Save incorrect_list
+save_incorrect_list = np.unique(incorrect_list[:,None] + '--' + incorrect_true_race[:,None] + '--' + incorrect_prediceted_race[:,None] + '--' + incorrect_true_label[:,None] + '--' + incorrect_predicted_label[:,None])
+# np.savetxt('incorrect_list.txt', incorrect_list, delimiter=' ', fmt='%s')
+# np.savetxt('incorrect_true_race.txt', incorrect_true_race, delimiter=' ', fmt='%s')
+# np.savetxt('incorrect_prediceted_race.txt', incorrect_prediceted_race, delimiter=' ', fmt='%s')
+np.savetxt('save_incorrect_list_' + eval_mode + '_' + race_classify_mode + '.txt', save_incorrect_list, delimiter=' ', fmt='%s')
 
 print()
