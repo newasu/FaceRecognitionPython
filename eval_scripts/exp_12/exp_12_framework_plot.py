@@ -58,4 +58,10 @@ scores = pd.DataFrame(scores).T
 scores.columns = score_class
 # scores.mean(axis=1)
 
+ranks = scores.rank(axis=0, method='average', ascending=False)
+sum_rank = ranks.sum(axis=1)
+
+# Plot grouped bar
+
+
 print()

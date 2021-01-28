@@ -18,7 +18,7 @@ from algorithms.welm import welm
 
 # Experiment name
 exp = 'exp_11'
-exp_name = exp + '_alg_selmEuclidSumPOS_AllInOne'
+exp_name = exp + '_alg_selmEuclidSumPOS_dfbt_AllInOne'
 # query_exp_name = exp_name
 vl = 'df' # valid from df : diveface , lfw
 
@@ -43,8 +43,8 @@ cv_run = -1 # -1 = run all fold, else, run only define
 # Algorithm parameters
 param_grid = {'distanceFunc':'euclidean', 
               'kernel_param':0, 
-              'hiddenNodePerc':(np.arange(5, 0, -1)/10), 
-              'regC':10**np.arange(6, -7, -1, dtype='float')}
+              'hiddenNodePerc':(np.arange(7, 0, -1)/10), 
+              'regC':10**np.arange(10, -11, -1, dtype='float')}
 combine_rule = 'sum'
 
 pos_class = 'POS'
@@ -86,7 +86,7 @@ selm_model = selm()
 welm_model = welm()
 
 # Load LFW
-lfw = pd.read_csv(lfw_dataset_path + 'DevTest' + os.sep + 'DevTest_cleaned_backup.txt', header=0, sep=' ')
+lfw = pd.read_csv(lfw_dataset_path + 'DevTest' + os.sep + 'DevTest_balanced_triplet.txt', header=0, sep=' ')
 lfw_id_pose = (lfw['id'] + '_' + lfw['pose'].astype(str)).values
 pairsDevTest_POS = pd.read_csv(lfw_dataset_path + 'pairsDevTest_POS.txt', header=None, sep='\t')
 pairsDevTest_NEG = pd.read_csv(lfw_dataset_path + 'pairsDevTest_NEG.txt', header=None, sep='\t')
@@ -158,7 +158,7 @@ for exp_numb in run_exp_round:
     exp_name_seed = (exp_name + '_run_' + str(exp_numb))
     
     # Load DiveFace data
-    diveface = pd.read_csv((diveface_dataset_path + dataset_name + '_' + dataset_exacted + '_nonorm.txt'), sep=" ", header=0)
+    diveface = pd.read_csv((diveface_dataset_path + dataset_name + '_' + dataset_exacted + '_balanced_triplet.txt'), sep=' ', header=0)
     # Separate data
     diveface_race = (diveface['gender'] + '-' + diveface['ethnicity']).values
     [training_sep_idx, test_sep_idx, valid_sep_idx] = my_util.split_data_by_id_and_classes(diveface.id.values, diveface_race, test_size=test_size, valid_size=valid_size, random_state=exp_numb)
@@ -292,6 +292,9 @@ for exp_numb in run_exp_round:
     print('tar_1: ' + str(exp_result['tar_1']))
     print('tar_0d1: ' + str(exp_result['tar_0d1']))
     print('tar_0d01: ' + str(exp_result['tar_0d01']))
+    
+    print('regC: ' + str(exp_result['regC']))
+    print('hiddenNodePerc: ' + str(exp_result['hiddenNodePerc']))
 
     del best_param, performance_metric
     del weightID, beta, label_classes, training_time
