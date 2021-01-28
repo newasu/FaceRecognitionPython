@@ -31,16 +31,16 @@ tf.config.experimental.set_memory_growth(gpus[0], True)
 eval_mode = 'selm' # selm baseline
 classifier_exp = 'exp_11'
 classifier_model_rule = ['Sum', 'Sum', 'Sum', 'Sum', 'Sum', 'Sum'] # Dist Mean Multiply Sum
-allinone = '' # rd_0d5_vl_df rd_0d2_vl_df
+allinone = 'rd_0d6_vl_df' # rd_0d5_vl_df rd_0d2_vl_df rd_0d67_vl_df rd_0d6_vl_df
 
 # gender and ethnicity model
-race_classify_mode = 'auto' # auto manual none
+race_classify_mode = 'none' # auto manual none
 model_exp = 'exp_12'
 gender_exp_name = model_exp + '_gender_welm'
 ethnicity_exp_name = model_exp + '_ethnicity_welm'
 
 # Experiment
-exp_name = model_exp + '_framework_' + eval_mode
+exp_name = model_exp + '_framework_' + eval_mode + '-' + allinone + '_' + race_classify_mode
 
 triplet_filename_comment = 'eer'
 triplet_param = {'exp':'exp_7', 
@@ -70,6 +70,10 @@ dataset_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecogni
 # Model path
 gender_model_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', model_exp, gender_exp_name, gender_exp_name + '_run_0.npy'])
 ethnicity_model_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', model_exp, ethnicity_exp_name, ethnicity_exp_name + '_run_0.npy'])
+# Save path
+summary_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'summary', model_exp, exp_name])
+# Make directory
+my_util.make_directory(summary_path)
 
 #############################################################################################
 
@@ -372,13 +376,21 @@ for exp_numb in run_exp_round:
     incorrect_true_label = np.append(incorrect_true_label, test_valid_label[~correct_list])
     incorrect_predicted_label = np.append(incorrect_predicted_label, predictedY[~correct_list])
     
+    predicted_label = np.empty((0,4))
+    predicted_label = np.vstack((predicted_label, ['true_label', 'predicted_label', 'race_anchor', 'race_compare']))
+    predicted_label = np.vstack((predicted_label,np.concatenate((test_valid_label[:,None],predictedY[:,None],test_race_anchor[:,None],test_race_compare[:,None]),axis=1)))
+    
+    my_util.save_numpy(predicted_label, summary_path, exp_name_seed+'_label', doSilent=True)
+    my_util.save_numpy(np.vstack((train_class, tmp_race_accuracy_all)), summary_path, exp_name_seed, doSilent=True)
+    
     print('Finished ' + exp_name_seed)
     
-    del selm_weight, selm_weight_idx
+    if eval_mode == 'selm':
+        del selm_weight, selm_weight_idx
     del performance_metric, correct_list
 
 print(train_class)
-print(tmp_race_accuracy_all)
+print(np.vstack((train_class, tmp_race_accuracy_all)))
 print(np.mean(tmp_race_accuracy_all, axis=1))
 print(np.mean(tmp_race_accuracy_all))
 # print(tmp_accuracy_all)

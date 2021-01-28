@@ -203,7 +203,6 @@ if sum_idx.size > 0 and mean_idx.size > 0:
     fig.savefig('compare_overcome.png')
     fig.savefig('compare_overcome.pdf')
 
-
 #############################################################################################
 
 print()

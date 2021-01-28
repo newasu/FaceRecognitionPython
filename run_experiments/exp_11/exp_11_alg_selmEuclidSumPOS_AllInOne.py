@@ -30,7 +30,7 @@ num_used_cores = 1
 
 # Whole run round settings
 run_exp_round = [0] # define randomseed as list
-training_rd = 0.2 # reduce size
+training_rd = 0 # reduce size
 test_size = 0.3
 valid_size = 0.1
 
@@ -43,8 +43,8 @@ cv_run = -1 # -1 = run all fold, else, run only define
 # Algorithm parameters
 param_grid = {'distanceFunc':'euclidean', 
               'kernel_param':0, 
-              'hiddenNodePerc':(np.arange(10, 0, -1)/10), 
-              'regC':10**np.arange(8, -9, -1, dtype='float')}
+              'hiddenNodePerc':(np.arange(5, 0, -1)/10), 
+              'regC':10**np.arange(6, -7, -1, dtype='float')}
 combine_rule = 'sum'
 
 pos_class = 'POS'
@@ -229,12 +229,12 @@ for exp_numb in run_exp_round:
     combined_test_id = test_data_id
     
     # Best params
-    avg_cv_results = avg_cv_results.sort_values(by='auc_pos', ascending=False)
-    best_param_list = avg_cv_results.iloc[0:5,:]
+    avg_cv_results = avg_cv_results.sort_values(by='accuracy', ascending=False)
+    best_param_list = avg_cv_results.iloc[0:6,:]
     bucket = {}
     performance_metric_bucket = {}
     for best_param_list_idx in range(0, best_param_list.shape[0]):
-        
+        print('Calculating best parameters ' + str(best_param_list_idx) + ' ...')
         best_param = best_param_list.iloc[best_param_list_idx]
 
         # Train model with best params
