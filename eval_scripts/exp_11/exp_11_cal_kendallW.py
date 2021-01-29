@@ -123,7 +123,10 @@ for run_exp_round_idx, run_exp_round_val in enumerate(run_exp_round):
 # plot total
 anno_p = {}
 for p_idx, p_val in enumerate(p[0]):
-    anno_p[p_idx] = plt.text(p_val.get_x()+p_val.get_width()/2., rankOrder_total_exp[eval_metric][p_idx], '%s'% rankOrder_total_exp[eval_metric][p_idx], ha='center', va='bottom')
+    tmp_plot_score = rankOrder_total_exp[eval_metric][p_idx]
+    if tmp_plot_score.is_integer():
+        tmp_plot_score = tmp_plot_score.astype(int)
+    anno_p[p_idx] = plt.text(p_val.get_x()+p_val.get_width()/2., rankOrder_total_exp[eval_metric][p_idx], '%s'% tmp_plot_score, ha='center', va='bottom')
 
 # Set axis label
 ax.set_xticks(ind)

@@ -30,7 +30,7 @@ num_used_cores = 1
 
 # Whole run round settings
 run_exp_round = [0] # define randomseed as list
-training_rd = 0 # reduce size
+training_rd = 0.3 # reduce size
 test_size = 0.3
 valid_size = 0.1
 
@@ -43,7 +43,7 @@ cv_run = -1 # -1 = run all fold, else, run only define
 # Algorithm parameters
 param_grid = {'distanceFunc':'euclidean', 
               'kernel_param':0, 
-              'hiddenNodePerc':(np.arange(7, 0, -1)/10), 
+              'hiddenNodePerc':(np.arange(10, 0, -1)/10), 
               'regC':10**np.arange(10, -11, -1, dtype='float')}
 combine_rule = 'sum'
 

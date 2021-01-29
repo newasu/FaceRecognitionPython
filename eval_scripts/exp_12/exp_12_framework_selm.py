@@ -31,7 +31,8 @@ tf.config.experimental.set_memory_growth(gpus[0], True)
 eval_mode = 'selm' # selm baseline
 classifier_exp = 'exp_11'
 classifier_model_rule = ['Sum', 'Sum', 'Sum', 'Sum', 'Sum', 'Sum'] # Dist Mean Multiply Sum
-allinone = 'rd_0d6_vl_df' # rd_0d5_vl_df rd_0d2_vl_df rd_0d67_vl_df rd_0d6_vl_df
+allinone = 'rd_0d5_vl_df' # rd_0d5_vl_df rd_0d2_vl_df rd_0d67_vl_df rd_0d6_vl_df
+balanced_triplet = True     # rd_0_vl_df rd_0d2_vl_df rd_0d3_vl_df rd_0d5_vl_df
 
 # gender and ethnicity model
 race_classify_mode = 'none' # auto manual none
@@ -41,6 +42,8 @@ ethnicity_exp_name = model_exp + '_ethnicity_welm'
 
 # Experiment
 exp_name = model_exp + '_framework_' + eval_mode + '-' + allinone + '_' + race_classify_mode
+if balanced_triplet:
+    exp_name = exp_name + '_dfbt'
 
 triplet_filename_comment = 'eer'
 triplet_param = {'exp':'exp_7', 
@@ -163,9 +166,9 @@ def siamese_layer(fa,fb,cr):
 #############################################################################################
 
 # Feature size
-if dataset_exacted == 'vgg16':
-    feature_size = 4096
-elif dataset_exacted == 'resnet50':
+if balanced_triplet:
+    feature_size = 512
+else:
     feature_size = 2048
 proposed_model_feature_size = 1024
 
@@ -204,10 +207,16 @@ label_classes = np.unique(['POS', 'NEG'])
 #############################################################################################
 
 # Read txt
-diveface = pd.read_csv((diveface_path + 'Diveface' + '_' + 'resnet50' + '_nonorm.txt'), sep=" ", header=0)
+if balanced_triplet:
+    diveface = pd.read_csv((diveface_path + 'Diveface' + '_' + 'resnet50' + '_balanced_triplet.txt'), sep=" ", header=0)
+else:
+    diveface = pd.read_csv((diveface_path + 'Diveface' + '_' + 'resnet50' + '_nonorm.txt'), sep=" ", header=0)
 diveface_race = (diveface.gender + '-' + diveface.ethnicity).values
 # my_data_triplet = pd.read_csv((diveface_path + 'Diveface' + '_' + 'resnet50' + '_' + 'exp_7' + '_run_' + str(0) + '(' + triplet_filename_comment + ').txt'), sep=" ", header=0)
-lfw = pd.read_csv(dataset_path + 'DevTest' + os.sep + 'DevTest_cleaned_backup.txt', header=0, sep=' ')
+if balanced_triplet:
+    lfw = pd.read_csv(dataset_path + 'DevTest' + os.sep + 'DevTest_balanced_triplet.txt', header=0, sep=' ')
+else:
+    lfw = pd.read_csv(dataset_path + 'DevTest' + os.sep + 'DevTest_cleaned_backup.txt', header=0, sep=' ')
 lfw_id_pose = (lfw['id'] + '_' + lfw['pose'].astype(str)).values
 pairsDevTest_POS = pd.read_csv(dataset_path + 'pairsDevTest_POS.txt', header=None, sep='\t')
 pairsDevTest_NEG = pd.read_csv(dataset_path + 'pairsDevTest_NEG.txt', header=None, sep='\t')
@@ -331,7 +340,11 @@ for exp_numb in run_exp_round:
             if allinone == '':  # load race model
                 tmp_exp_name = classifier_exp + '_alg_selmEuclid' + classifier_model_rule[train_class_idx] + 'POS_' + train_class_val
             else:   # load AllInOne model
-                tmp_exp_name = classifier_exp + '_alg_selmEuclid' + classifier_model_rule[train_class_idx] + 'POS_AllInOne_' + allinone
+                if balanced_triplet:
+                    allinone_prefix = 'POS_dfbt_AllInOne_'
+                else:
+                    allinone_prefix = 'POS_AllInOne_'
+                tmp_exp_name = classifier_exp + '_alg_selmEuclid' + classifier_model_rule[train_class_idx] + allinone_prefix + allinone
                 
         model_path = my_util.get_path(additional_path=['.', '.', 'mount', 'FaceRecognitionPython_data_store', 'Result', 'exp_result', classifier_exp, tmp_exp_name])
         model[train_class_val] = my_util.load_numpy_file(model_path + tmp_exp_name + '_run_' + str(exp_numb) + '.npy')
