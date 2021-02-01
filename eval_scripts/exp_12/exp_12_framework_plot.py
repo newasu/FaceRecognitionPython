@@ -20,7 +20,7 @@ result_exp = 'exp_12'
 # result_alg = ['baseline-_none', 'selm-_auto', 'selm-rd_0d2_vl_df_none', 'selm-rd_0d5_vl_df_none', 'selm-rd_0d6_vl_df_none', 'selm-rd_0d67_vl_df_none', 'selm-rd_0_vl_df_none_dfbt', 'selm-rd_0d2_vl_df_none_dfbt', 'selm-rd_0d5_vl_df_none_dfbt']
 
 result_alg = ['baseline-_none', 'selm-_auto', 'selm-rd_0d5_vl_df_none']
-method_list = ['ResNet', 'SELM$_{Sum}^{GED}$', 'SELM$_{Sum}^{SD}$']
+method_list = ['ResNet', 'SELM$_{Sum}^{GED}$', 'SELM$_{Sum}^{SI}$']
 
 random_seed = 0
 
